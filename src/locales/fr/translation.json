@@ -1,0 +1,388 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "stock": "Inventaire",
+    "stockEntries": "Entrées Stock",
+    "stockExits": "Sorties Stock",
+    "suppliers": "Fournisseurs",
+    "clients": "Clients & Crédits",
+    "expenses": "Dépenses",
+    "services": "Services",
+    "users": "Utilisateurs",
+    "profile": "Mon Profil",
+    "logout": "Déconnexion"
+  },
+  "common": {
+    "loading": "Chargement de votre espace...",
+    "page": "Page",
+    "search": "Rechercher...",
+    "add": "Ajouter",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "actions": "Actions",
+    "status": "Statut",
+    "date": "Date",
+    "amount": "Montant",
+    "notes": "Notes",
+    "total": "Total",
+    "confirm": "Confirmer",
+    "error": "Erreur",
+    "success": "Succès",
+    "currency": "DT"
+  },
+  "dashboard": {
+    "welcome": "Bonjour, {{name}} 👋",
+    "subtitle": "Voici ce qui se passe dans votre entreprise aujourd'hui.",
+    "todayDate": "Date d'aujourd'hui",
+    "stats": {
+      "stockValue": "Valeur Stock (Achat)",
+      "potentialRevenue": "Revenu Potentiel",
+      "totalCredits": "Total Crédits Clients",
+      "stockAlerts": "Alertes Stock"
+    },
+    "aiDescription": "Utilisez notre intelligence artificielle pour obtenir des conseils stratégiques sur votre stock et vos crédits.",
+    "analyzeStock": "Analyse du Stock",
+    "analyzeCredits": "Analyse des Crédits",
+    "analyzing": "Analyse en cours...",
+    "stockAnalysisTitle": "Analyse Stock",
+    "creditAnalysisTitle": "Analyse Crédits",
+    "financialOverview": "Gestion Financière",
+    "revenueTrend": "Évolution des Recettes",
+    "financials": {
+      "totalSales": "Ventes Totales",
+      "paymentsReceived": "Paiements Reçus",
+      "outstandingCredits": "Crédits en Cours",
+      "totalExpenses": "Dépenses Totales",
+      "netProfit": "Recette Nette"
+    },
+    "quickActions": {
+      "title": "Actions Rapides",
+      "newStockEntry": "Nouvelle Entrée",
+      "newStockExit": "Nouvelle Sortie",
+      "newProduct": "Nouveau Produit",
+      "newClient": "Nouveau Client",
+      "newSupplier": "Nouveau Fournisseur",
+      "newExpense": "Nouvelle Dépense"
+    }
+  },
+  "stock": {
+    "title": "Gestion du Stock",
+    "subtitle": "Gérez vos articles, variantes et niveaux de stock.",
+    "newProduct": "Nouveau Produit",
+    "aiAnalysis": "Analyse IA",
+    "analyzing": "Analyse...",
+    "aiTitle": "Conseils de Réapprovisionnement",
+    "searchPlaceholder": "Rechercher par nom ou référence...",
+    "allCategories": "Toutes les catégories",
+    "allStock": "Tout le stock",
+    "lowStockOnly": "Stock faible uniquement",
+    "lowStock": "Stock Bas",
+    "inStock": "En Stock",
+    "noDescription": "Aucune description fournie.",
+    "quantity": "Quantité",
+    "salePrice": "Prix Vente",
+    "variants": "Variantes",
+    "noCategory": "Sans catégorie",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "deleteConfirm": "Supprimer le produit \"{{name}}\" ?",
+    "permissionDenied": "Permission refusée",
+    "modal": {
+      "editTitle": "Modifier le produit",
+      "newTitle": "Nouveau produit",
+      "subtitle": "Remplissez les informations détaillées du produit."
+    },
+    "form": {
+      "name": "Nom du produit",
+      "reference": "Référence",
+      "category": "Catégorie",
+      "categoryPlaceholder": "Ex: Électronique, Vêtements...",
+      "unit": "Unité de mesure",
+      "description": "Description",
+      "purchasePrice": "Prix Achat (DT)",
+      "salePrice": "Prix Vente (DT)",
+      "stockTotal": "Stock Total",
+      "minStock": "Seuil Alerte",
+      "variantsTitle": "Variantes du produit",
+      "optional": "Optionnel",
+      "variantNamePlaceholder": "Nom (ex: XL, Rouge)",
+      "variantStockPlaceholder": "Stock",
+      "variantPricePlaceholder": "+/- Prix (DT)",
+      "addVariant": "Ajouter",
+      "cancel": "Annuler",
+      "save": "Enregistrer les modifications",
+      "create": "Créer le produit"
+    },
+    "units": {
+      "unit": "Unité",
+      "kg": "Kilogramme (kg)",
+      "litre": "Litre (L)",
+      "metre": "Mètre (m)",
+      "paquet": "Paquet"
+    }
+  },
+  "clients": {
+    "title": "Gestion des Clients",
+    "subtitle": "Gérez vos clients et suivez leurs crédits.",
+    "newClient": "Nouveau Client",
+    "searchPlaceholder": "Rechercher par nom, téléphone ou email...",
+    "totalCredit": "Crédit Total",
+    "deleteConfirm": "Supprimer le client \"{{name}}\" ?",
+    "permissionDenied": "Permission refusée",
+    "currentCredit": "Crédit actuel",
+    "recordPayment": "Enregistrer Paiement",
+    "modal": {
+      "editTitle": "Modifier le client",
+      "newTitle": "Nouveau client",
+      "paymentTitle": "Enregistrer un Paiement",
+      "subtitle": "Informations de contact et crédit."
+    },
+    "form": {
+      "name": "Nom complet",
+      "phone": "Téléphone",
+      "email": "Email",
+      "address": "Adresse",
+      "creditLimit": "Limite de crédit",
+      "amount": "Montant",
+      "date": "Date",
+      "method": "Méthode",
+      "notes": "Notes",
+      "initialCredit": "Crédit Initial (DT)",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "create": "Créer le client"
+    }
+  },
+  "suppliers": {
+    "title": "Fournisseurs",
+    "subtitle": "Gérez vos partenaires et fournisseurs",
+    "newSupplier": "Nouveau Fournisseur",
+    "searchPlaceholder": "Rechercher un fournisseur...",
+    "deleteConfirm": "Supprimer le fournisseur \"{{name}}\" ?",
+    "modal": {
+      "editTitle": "Modifier le fournisseur",
+      "newTitle": "Nouveau fournisseur"
+    },
+    "form": {
+      "name": "Nom du fournisseur *",
+      "contactName": "Contact principal",
+      "phone": "Téléphone",
+      "email": "Email",
+      "category": "Catégorie",
+      "categoryPlaceholder": "ex: Électronique, Mobilier...",
+      "address": "Adresse",
+      "cancel": "Annuler",
+      "update": "Mettre à jour",
+      "save": "Enregistrer"
+    }
+  },
+  "auth": {
+    "login": "Connexion",
+    "email": "Email professionnel",
+    "password": "Mot de passe",
+    "signIn": "Se connecter",
+    "forgotPassword": "Mot de passe oublié ?",
+    "register": "Créer un compte",
+    "reset": "Réinitialisation",
+    "welcomeBack": "Bon retour !",
+    "resetInstructions": "Entrez votre email pour recevoir un lien de récupération.",
+    "registerInstructions": "Commencez à gérer votre entreprise dès aujourd'hui.",
+    "loginInstructions": "Connectez-vous pour accéder à votre tableau de bord.",
+    "fullName": "Nom complet",
+    "sendLink": "Envoyer le lien",
+    "createAccount": "Créer mon compte",
+    "orContinueWith": "Ou continuer avec",
+    "testAccounts": "Comptes de test",
+    "backToLogin": "Retour à la connexion",
+    "alreadyHaveAccount": "Déjà un compte ? Se connecter",
+    "noAccount": "Pas encore de compte ? S'inscrire",
+    "heroTitle": "Gérez votre stock et vos crédits avec élégance.",
+    "heroSubtitle": "Une solution moderne, rapide et intelligente pour les commerçants tunisiens. Suivez chaque Dinar avec précision.",
+    "secure": "Sécurisé",
+    "aiAnalysis": "Analyses Intelligentes"
+  },
+  "users": {
+    "title": "Utilisateurs & Activité",
+    "subtitle": "Gérez les accès et surveillez les actions du système.",
+    "searchPlaceholder": "Rechercher un utilisateur...",
+    "restrictedAccess": "Accès Restreint",
+    "restrictedMessage": "Seuls les administrateurs peuvent accéder à la gestion des utilisateurs et au journal d'activité.",
+    "table": {
+      "user": "Utilisateur",
+      "role": "Rôle",
+      "action": "Action"
+    },
+    "roles": {
+      "admin": "Administrateur",
+      "warehouseman": "Magasinier"
+    },
+    "activity": {
+      "title": "Journal d'Activité",
+      "noActivity": "Aucune activité récente."
+    },
+    "modal": {
+      "title": "Modifier le rôle",
+      "subtitle": "Définissez les permissions de l'utilisateur.",
+      "name": "Nom complet",
+      "selectRole": "Sélectionner un rôle",
+      "cancel": "Annuler",
+      "update": "Mettre à jour"
+    },
+    "addUser": "Ajouter un utilisateur"
+  },
+  "profile": {
+    "title": "Mon Profil",
+    "subtitle": "Gérez vos informations personnelles et la sécurité de votre compte.",
+    "edit": "Modifier le profil",
+    "cancel": "Annuler",
+    "successUpdate": "Profil mis à jour avec succès !",
+    "successReset": "Email de réinitialisation envoyé !",
+    "form": {
+      "fullName": "Nom complet",
+      "phone": "Téléphone",
+      "email": "Adresse Email",
+      "emailNote": "L'email ne peut pas être modifié pour des raisons de sécurité.",
+      "save": "Enregistrer les modifications"
+    },
+    "security": {
+      "title": "Sécurité du compte",
+      "password": "Mot de passe",
+      "lastModified": "Dernière modification : Inconnue",
+      "resetEmail": "Réinitialiser par email",
+      "sending": "Envoi..."
+    },
+    "summary": {
+      "memberSince": "Membre depuis",
+      "status": "Statut",
+      "active": "Actif",
+      "verified": "Vérifié",
+      "yes": "Oui",
+      "help": "Besoin d'aide avec votre compte ? Contactez l'administrateur système pour toute demande de changement de rôle ou de permissions."
+    }
+  },
+  "stockEntries": {
+    "title": "Entrées de Stock",
+    "subtitle": "Réceptionnez vos marchandises et mettez à jour vos stocks",
+    "newReception": "Nouvelle Réception",
+    "searchPlaceholder": "Rechercher une réception...",
+    "purchaseReception": "Réception BC: {{number}}",
+    "directEntry": "Entrée Directe",
+    "receivedBy": "Reçu par: {{name}}",
+    "table": {
+      "product": "Produit",
+      "receivedQuantity": "Quantité Reçue",
+      "batchExpiry": "Lot / Péremption"
+    },
+    "modal": {
+      "title": "Nouvelle Réception de Marchandises",
+      "entryNumber": "N° Réception",
+      "type": "Type d'entrée *",
+      "purchaseOrder": "Bon de Commande *",
+      "reference": "Référence / Source",
+      "date": "Date de réception",
+      "itemsTitle": "Articles à réceptionner",
+      "addItem": "Ajouter un article",
+      "product": "Produit",
+      "quantity": "Quantité Reçue",
+      "batch": "N° de Lot",
+      "expiry": "Date Péremption",
+      "notes": "Notes / Observations",
+      "cancel": "Annuler",
+      "confirm": "Valider la réception",
+      "selectPO": "Sélectionner un BC",
+      "selectProduct": "Choisir un produit",
+      "noItemsManual": "Aucun article ajouté. Cliquez sur \"Ajouter un article\"."
+    },
+    "types": {
+      "return_from_client": "Retour Client",
+      "adjustment_plus": "Ajustement Positif"
+    }
+  },
+  "stockExits": {
+    "title": "Sorties de Stock",
+    "subtitle": "Gérez les livraisons, ventes et consommations internes",
+    "newExit": "Nouvelle Sortie",
+    "searchPlaceholder": "Rechercher une sortie...",
+    "performedBy": "Effectué par: {{name}}",
+    "table": {
+      "product": "Produit",
+      "quantity": "Quantité Sortie",
+      "unitPrice": "P.U",
+      "total": "Total"
+    },
+    "modal": {
+      "title": "Nouvelle Sortie de Stock",
+      "exitNumber": "N° Sortie",
+      "type": "Type de sortie *",
+      "date": "Date",
+      "destination": "Destination",
+      "selectClient": "Sélectionner un client",
+      "projectName": "Nom du projet",
+      "serviceReason": "Service / Raison",
+      "itemsTitle": "Articles à sortir",
+      "addItem": "Ajouter un article",
+      "product": "Produit",
+      "quantity": "Quantité",
+      "unitPrice": "P.U Vente",
+      "total": "Total",
+      "notes": "Notes / Observations",
+      "cancel": "Annuler",
+      "confirm": "Valider la sortie",
+      "selectProduct": "Choisir un produit",
+      "noItems": "Aucun article ajouté. Cliquez sur \"Ajouter un article\".",
+      "insufficientStock": "Stock insuffisant ! Disponible: {{quantity}}"
+    },
+    "types": {
+      "sale": "Vente",
+      "internal_consumption": "Consommation Interne",
+      "project_delivery": "Livraison Projet",
+      "return_to_supplier": "Retour Fournisseur",
+      "adjustment_minus": "Ajustement Négatif"
+    }
+  },
+  "expenses": {
+    "title": "Dépenses Externes",
+    "subtitle": "Gérez et suivez les dépenses opérationnelles de l'entreprise.",
+    "newExpense": "Nouvelle Dépense",
+    "exportCSV": "Exporter Rapport",
+    "searchPlaceholder": "Rechercher par description ou catégorie...",
+    "recordedBy": "Enregistré par: {{name}}",
+    "table": {
+      "description": "Description",
+      "category": "Catégorie",
+      "amount": "Montant",
+      "date": "Date"
+    },
+    "modal": {
+      "newTitle": "Enregistrer une dépense",
+      "editTitle": "Modifier la dépense",
+      "amount": "Montant (DT) *",
+      "description": "Description explicative *",
+      "category": "Catégorie",
+      "date": "Date de la dépense",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "confirm": "Confirmer l'enregistrement"
+    },
+    "deleteConfirm": "Supprimer cette dépense de {{amount}} DT ?",
+    "noExpenses": "Aucune dépense enregistrée."
+  },
+  "services": {
+    "title": "Services",
+    "subtitle": "Gérez les services rendus et facturés.",
+    "newService": "Nouveau Service",
+    "noServices": "Aucun service enregistré.",
+    "modal": {
+      "newTitle": "Enregistrer un service",
+      "editTitle": "Modifier le service"
+    }
+  },
+  "errorBoundary": {
+    "title": "Oups ! Quelque chose s'est mal passé",
+    "defaultMessage": "Une erreur inattendue est survenue.",
+    "permissionDenied": "Vous n'avez pas les permissions nécessaires pour effectuer cette action ou accéder à ces données.",
+    "reload": "Recharger l'application"
+  }
+}

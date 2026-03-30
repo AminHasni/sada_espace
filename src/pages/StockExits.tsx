@@ -1,0 +1,521 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  collection, 
+  onSnapshot, 
+  addDoc, 
+  doc, 
+  query, 
+  orderBy,
+  runTransaction,
+  where
+} from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from '../components/AuthProvider';
+import { useTranslation } from 'react-i18next';
+import { StockExit, Client, Product, StockExitItem, UserProfile } from '../types';
+import { 
+  Plus, 
+  Search, 
+  X, 
+  FileUp, 
+  Calendar, 
+  User, 
+  Package,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  Briefcase,
+  Trash2
+} from 'lucide-react';
+import { logActivity } from '../services/activity';
+import { notificationService } from '../services/notificationService';
+import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { format } from 'date-fns';
+import { fr, arDZ } from 'date-fns/locale';
+
+const StockExits: React.FC = () => {
+  const { profile } = useAuth();
+  const { t, i18n } = useTranslation();
+  const [exits, setExits] = useState<StockExit[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [notifiedUsers, setNotifiedUsers] = useState<UserProfile[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [expandedExitId, setExpandedExitId] = useState<string | null>(null);
+
+  const dateLocale = i18n.language === 'ar' ? arDZ : fr;
+
+  const [formData, setFormData] = useState({
+    exitNumber: `SORT-${Date.now().toString().slice(-6)}`,
+    type: 'sale' as StockExit['type'],
+    clientId: '',
+    projectId: '',
+    projectName: '',
+    serviceName: '',
+    exitDate: new Date().toISOString().split('T')[0],
+    paymentStatus: 'paid' as 'paid' | 'credit',
+    amountPaid: 0,
+    notes: '',
+    items: [] as StockExitItem[]
+  });
+
+  useEffect(() => {
+    if (!profile) return;
+
+    const qExits = query(collection(db, 'stock_exits'), orderBy('createdAt', 'desc'));
+    const unsubscribeExits = onSnapshot(qExits, (snapshot) => {
+      setExits(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StockExit[]);
+      setLoading(false);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'stock_exits'));
+
+    const unsubscribeClients = onSnapshot(collection(db, 'clients'), (snapshot) => {
+      setClients(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Client[]);
+    });
+
+    const unsubscribeProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+      setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[]);
+    });
+
+    const unsubscribeUsers = onSnapshot(query(collection(db, 'users'), where('role', 'in', ['admin', 'warehouseman'])), (snapshot) => {
+      const usersList = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as UserProfile[];
+      setNotifiedUsers(usersList);
+    });
+
+    return () => {
+      unsubscribeExits();
+      unsubscribeClients();
+      unsubscribeProducts();
+      unsubscribeUsers();
+    };
+  }, [profile]);
+
+  const handleOpenModal = () => {
+    setFormData({
+      exitNumber: `SORT-${Date.now().toString().slice(-6)}`,
+      type: 'sale',
+      clientId: '',
+      projectId: '',
+      projectName: '',
+      serviceName: '',
+      exitDate: new Date().toISOString().split('T')[0],
+      paymentStatus: 'paid',
+      amountPaid: 0,
+      notes: '',
+      items: []
+    });
+    setIsModalOpen(true);
+  };
+
+  const addItem = () => {
+    setFormData({
+      ...formData,
+      items: [...formData.items, { productId: '', productName: '', quantity: 1, unitPrice: 0 }]
+    });
+  };
+
+  const removeItem = (index: number) => {
+    const newItems = [...formData.items];
+    newItems.splice(index, 1);
+    setFormData({ ...formData, items: newItems });
+  };
+
+  const updateItem = (index: number, field: keyof StockExitItem, value: any) => {
+    const newItems = [...formData.items];
+    if (field === 'productId') {
+      const product = products.find(p => p.id === value);
+      newItems[index] = { 
+        ...newItems[index], 
+        productId: value, 
+        productName: product?.name || '', 
+        unitPrice: product?.salePrice || 0 
+      };
+    } else {
+      newItems[index] = { ...newItems[index], [field]: value };
+    }
+    setFormData({ ...formData, items: newItems });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile) return;
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        // 1. Check and Update Product Stocks
+        const exitRef = doc(collection(db, 'stock_exits'));
+        
+        for (const item of formData.items) {
+          const productRef = doc(db, 'products', item.productId);
+          const productSnap = await transaction.get(productRef);
+          
+          if (!productSnap.exists()) {
+            throw new Error(`Produit non trouvé: ${item.productName}`);
+          }
+
+          const currentStock = productSnap.data().stockQuantity || 0;
+          if (currentStock < item.quantity) {
+            throw new Error(`Stock insuffisant pour ${item.productName}. Disponible: ${currentStock}`);
+          }
+
+          const newStock = currentStock - item.quantity;
+          transaction.update(productRef, { stockQuantity: newStock });
+
+          // Send low stock notification if below threshold
+          const minStock = productSnap.data().minStockLevel || 0;
+          if (newStock <= minStock) {
+            // Send notification to all admins and warehousemen
+            notifiedUsers.forEach(user => {
+              notificationService.sendNotification({
+                userId: user.uid,
+                title: 'Alerte Stock Faible',
+                message: `Le produit "${productSnap.data().name}" a atteint un niveau de stock faible (${newStock} restants).`,
+                type: 'warning',
+                link: `/stock?search=${encodeURIComponent(productSnap.data().name)}`
+              }).catch(err => console.error('Error sending low stock notification:', err));
+            });
+          }
+          
+          const historyRef = doc(collection(db, 'stock_history'));
+          transaction.set(historyRef, {
+            productId: item.productId,
+            productName: item.productName,
+            type: 'exit',
+            quantity: item.quantity,
+            previousStock: currentStock,
+            newStock: newStock,
+            documentId: exitRef.id,
+            documentReference: formData.exitNumber,
+            date: new Date().toISOString(),
+            performedBy: profile.uid,
+            performedByName: profile.displayName
+          });
+        }
+
+        // 2. Create Stock Exit
+        const client = clients.find(c => c.id === formData.clientId);
+        const totalAmount = formData.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+        
+        const exitData = {
+          ...formData,
+          totalAmount,
+          clientName: client?.name || '',
+          performedBy: profile.uid,
+          performedByName: profile.displayName,
+          createdAt: new Date().toISOString()
+        };
+        transaction.set(exitRef, exitData);
+
+        // 3. Update Client Credit if it's a sale to a client
+        if (formData.type === 'sale' && formData.clientId) {
+          const clientRef = doc(db, 'clients', formData.clientId);
+          const clientSnap = await transaction.get(clientRef);
+          if (clientSnap.exists()) {
+            const currentCredit = clientSnap.data().totalCredit || 0;
+            const creditToAdd = totalAmount - (formData.amountPaid || 0);
+            if (creditToAdd > 0) {
+              transaction.update(clientRef, { totalCredit: currentCredit + creditToAdd });
+            }
+          }
+
+          // Also record a payment if there was an upfront payment
+          if (formData.amountPaid && formData.amountPaid > 0) {
+            const paymentRef = doc(collection(db, 'payments'));
+            transaction.set(paymentRef, {
+              clientId: formData.clientId,
+              clientName: client?.name || '',
+              amount: formData.amountPaid,
+              date: formData.exitDate,
+              method: 'cash',
+              notes: `Paiement initial pour la vente ${formData.exitNumber}`,
+              performedBy: profile.uid,
+              performedByName: profile.displayName,
+              createdAt: new Date().toISOString()
+            });
+          }
+        }
+
+        // 4. Log Activity
+        const logRef = doc(collection(db, 'logs'));
+        transaction.set(logRef, {
+          userId: profile.uid,
+          userName: profile.displayName,
+          action: 'stock_exit',
+          details: `Sortie de stock: ${formData.exitNumber} (${formData.type})`,
+          timestamp: new Date().toISOString()
+        });
+      });
+
+      setIsModalOpen(false);
+    } catch (error: any) {
+      if (error.message.includes('Stock insuffisant')) {
+        alert(error.message);
+      } else {
+        handleFirestoreError(error, OperationType.WRITE, 'stock_exits');
+      }
+    }
+  };
+
+  const filteredExits = exits.filter(e => 
+    e.exitNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    e.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    e.projectName?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white">{t('stockExits.title')}</h1>
+          <p className="text-slate-500 dark:text-slate-400">{t('stockExits.subtitle')}</p>
+        </div>
+        {(profile?.role === 'admin' || profile?.role === 'warehouseman') && (
+          <button onClick={handleOpenModal} className="btn-primary flex items-center gap-2">
+            <Plus size={20} /> {t('stockExits.newExit')}
+          </button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+        <Search className="text-slate-400" size={20} />
+        <input 
+          type="text" 
+          placeholder={t('stockExits.searchPlaceholder')}
+          className="flex-1 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder:text-slate-400"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-4">
+        {filteredExits.map((exit) => (
+          <div key={exit.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden hover:border-primary/20 transition-all">
+            <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                  <FileUp size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{exit.exitNumber}</h3>
+                  <p className="text-slate-500 dark:text-slate-400 font-medium capitalize">
+                    {exit.type === 'sale' ? t('stockExits.types.sale') : 
+                     exit.type === 'internal_consumption' ? t('stockExits.types.internal_consumption') :
+                     exit.type === 'project_delivery' ? t('stockExits.types.project_delivery') :
+                     exit.type === 'return_to_supplier' ? t('stockExits.types.return_to_supplier') :
+                     exit.type === 'adjustment_minus' ? t('stockExits.types.adjustment_minus') :
+                     (exit.type as string).replace('_', ' ')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-6 text-sm">
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                  <User size={16} className="text-slate-400" />
+                  <span>{exit.clientName || exit.projectName || exit.serviceName || 'N/A'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                  <Calendar size={16} className="text-slate-400" />
+                  <span>{format(new Date(exit.exitDate), 'dd MMM yyyy', { locale: dateLocale })}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setExpandedExitId(expandedExitId === exit.id ? null : exit.id)}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 transition-colors"
+                  >
+                    {expandedExitId === exit.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {expandedExitId === exit.id && (
+              <div className="px-6 pb-6 pt-2 border-t border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
+                      <tr>
+                        <th className="px-4 py-3">{t('stockExits.table.product')}</th>
+                        <th className="px-4 py-3 text-center">{t('stockExits.table.quantity')}</th>
+                        <th className="px-4 py-3 text-right">{t('stockExits.table.unitPrice')}</th>
+                        <th className="px-4 py-3 text-right">{t('stockExits.table.total')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                      {exit.items.map((item, idx) => (
+                        <tr key={idx}>
+                          <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{item.productName}</td>
+                          <td className="px-4 py-3 text-center font-bold text-orange-600 dark:text-orange-400">-{item.quantity}</td>
+                          <td className="px-4 py-3 text-right dark:text-slate-300">{item.unitPrice.toLocaleString()} {t('common.currency')}</td>
+                          <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white">{(item.quantity * item.unitPrice).toLocaleString()} {t('common.currency')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-4 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 italic">
+                  <span>{t('stockExits.processedBy', { name: exit.performedByName })}</span>
+                  {exit.notes && <span>{t('common.notes')}: {exit.notes}</span>}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-4xl max-h-[90vh] shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('stockExits.modal.title')}</h2>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all shadow-sm">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('stockExits.modal.exitNumber')}</label>
+                  <input type="text" readOnly className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-medium" value={formData.exitNumber} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('stockExits.modal.type')}</label>
+                  <select 
+                    required 
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all font-medium"
+                    value={formData.type}
+                    onChange={(e) => setFormData({...formData, type: e.target.value as StockExit['type']})}
+                  >
+                    <option value="sale">{t('stockExits.types.sale')}</option>
+                    <option value="internal_consumption">{t('stockExits.types.internal_consumption')}</option>
+                    <option value="return_to_supplier">{t('stockExits.types.return_to_supplier')}</option>
+                    <option value="adjustment_minus">{t('stockExits.types.adjustment_minus')}</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('stockExits.modal.date')}</label>
+                  <input type="date" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all font-medium" value={formData.exitDate} onChange={(e) => setFormData({...formData, exitDate: e.target.value})} />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-lg">
+                    <Package size={20} className="text-primary" /> {t('stockExits.modal.itemsTitle', 'Articles à sortir')}
+                  </h3>
+                  <button type="button" onClick={addItem} className="btn-primary py-2 px-4 text-sm flex items-center gap-2 shadow-md shadow-primary/20">
+                    <Plus size={16} /> {t('stockExits.modal.addItem', 'Ajouter un article')}
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  {formData.items.map((item, index) => {
+                    const product = products.find(p => p.id === item.productId);
+                    const isStockInsufficient = product && product.stockQuantity < item.quantity;
+
+                    return (
+                      <div key={index} className={`grid grid-cols-1 md:grid-cols-12 gap-4 p-5 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border transition-all ${isStockInsufficient ? 'border-danger/50 bg-danger/5' : 'border-slate-200 dark:border-slate-700'}`}>
+                        <div className="md:col-span-5 space-y-2">
+                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.product', 'Produit')}</label>
+                          <select 
+                            required 
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-primary/20 transition-all"
+                            value={item.productId}
+                            onChange={(e) => updateItem(index, 'productId', e.target.value)}
+                          >
+                            <option value="">{t('stockExits.modal.selectProduct', 'Sélectionner un produit')}</option>
+                            {products.map(p => (
+                              <option key={p.id} value={p.id}>{p.name} ({t('stockExits.modal.stock', 'Stock')}: {p.stockQuantity})</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="md:col-span-2 space-y-2">
+                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.quantity', 'Quantité')}</label>
+                          <input 
+                            type="number" 
+                            min="1" 
+                            required 
+                            className={`w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-bold focus:border-primary focus:ring-primary/20 transition-all ${isStockInsufficient ? 'text-danger' : 'text-orange-600 dark:text-orange-400'}`}
+                            value={isNaN(item.quantity) ? '' : item.quantity}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : parseInt(e.target.value);
+                              updateItem(index, 'quantity', isNaN(val) ? 0 : val);
+                            }}
+                          />
+                        </div>
+                        <div className="md:col-span-2 space-y-2">
+                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.unitPrice', 'Prix unitaire')}</label>
+                          <input 
+                            type="number" 
+                            min="0" 
+                            required 
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-primary/20 transition-all"
+                            value={isNaN(item.unitPrice) ? '' : item.unitPrice}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                              updateItem(index, 'unitPrice', isNaN(val) ? 0 : val);
+                            }}
+                          />
+                        </div>
+                        <div className="md:col-span-2 space-y-2">
+                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.total', 'Total')}</label>
+                          <div className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center h-[42px]">
+                            {(item.quantity * item.unitPrice).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="md:col-span-1 flex items-end justify-center pb-1">
+                          <button type="button" onClick={() => removeItem(index)} className="p-2.5 text-danger hover:bg-danger/10 rounded-xl transition-colors" title="Supprimer">
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                        {isStockInsufficient && (
+                          <div className="md:col-span-12 flex items-center gap-2 text-danger text-xs font-bold mt-1 bg-danger/10 p-2 rounded-lg">
+                            <AlertTriangle size={14} />
+                            {t('stockExits.modal.insufficientStock', `Stock insuffisant. Disponible: ${product.stockQuantity}`, { quantity: product.stockQuantity })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {formData.items.length === 0 && (
+                    <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/30">
+                      <Package size={32} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+                      <p>{t('stockExits.modal.noItems', 'Aucun article ajouté. Cliquez sur "Ajouter un article".')}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('stockExits.modal.notes', 'Notes / Observations')}</label>
+                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all" rows={3} placeholder="Ajouter des notes optionnelles..." value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
+              </div>
+            </form>
+            <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex gap-4">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-white dark:hover:bg-slate-800 transition-all shadow-sm">
+                {t('stockExits.modal.cancel', 'Annuler')}
+              </button>
+              <button 
+                type="submit" 
+                onClick={handleSubmit} 
+                disabled={formData.items.length === 0 || formData.items.some(item => {
+                  const p = products.find(prod => prod.id === item.productId);
+                  return p && p.stockQuantity < item.quantity;
+                })}
+                className="flex-1 px-6 py-3.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {t('stockExits.modal.confirm', 'Valider la sortie')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Re-importing Trash2 since it was used in removeItem but might be missing from imports
+// Removed duplicate import
+
+export default StockExits;

@@ -1,0 +1,209 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A product in the inventory.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "reference": { "type": "string" },
+        "barcode": { "type": "string" },
+        "category": { "type": "string" },
+        "subCategory": { "type": "string" },
+        "purchasePrice": { "type": "number" },
+        "price": { "type": "number" },
+        "unit": { "type": "string" },
+        "stockQuantity": { "type": "number" },
+        "minStockLevel": { "type": "number" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "variants": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "reference", "price", "stockQuantity"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "A customer who can have credits.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "totalCredit": { "type": "number" },
+        "address": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "A payment received from a client.",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "method": { "type": "string", "enum": ["cash", "check", "transfer"] },
+        "notes": { "type": "string" },
+        "performedBy": { "type": "string" },
+        "performedByName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "amount", "date", "method", "performedBy"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account information and roles.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "warehouseman"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastLogin": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "Journal d'activité du système.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "action", "timestamp"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "A vendor providing products.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "contactName": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "PurchaseOrder": {
+      "title": "PurchaseOrder",
+      "description": "A request for products from a supplier.",
+      "type": "object",
+      "properties": {
+        "orderNumber": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "ordered", "partially_received", "received", "cancelled"] },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "orderDate": { "type": "string", "format": "date-time" },
+        "expectedDeliveryDate": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderNumber", "supplierId", "status", "items", "totalAmount", "orderDate"]
+    },
+    "StockEntry": {
+      "title": "StockEntry",
+      "description": "Recording of goods entering the warehouse.",
+      "type": "object",
+      "properties": {
+        "entryNumber": { "type": "string" },
+        "type": { "type": "string", "enum": ["purchase_reception", "return_from_client", "adjustment_plus"] },
+        "supplierId": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "purchaseOrderId": { "type": "string" },
+        "purchaseOrderNumber": { "type": "string" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "items": { "type": "array" },
+        "receptionDate": { "type": "string", "format": "date-time" },
+        "receivedBy": { "type": "string" },
+        "receivedByName": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["entryNumber", "type", "items", "receptionDate", "receivedBy"]
+    },
+    "StockExit": {
+      "title": "StockExit",
+      "description": "Recording of goods leaving the warehouse.",
+      "type": "object",
+      "properties": {
+        "exitNumber": { "type": "string" },
+        "type": { "type": "string", "enum": ["sale", "internal_consumption", "project_delivery", "return_to_supplier", "adjustment_minus"] },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "projectId": { "type": "string" },
+        "projectName": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "items": { "type": "array" },
+        "exitDate": { "type": "string", "format": "date-time" },
+        "performedBy": { "type": "string" },
+        "performedByName": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["exitNumber", "type", "items", "exitDate", "performedBy"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Système de notifications pour les utilisateurs.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "success", "warning", "error"] },
+        "isRead": { "type": "boolean" },
+        "link": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "message", "type", "isRead", "createdAt"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "External expenses recorded by staff.",
+      "type": "object",
+      "properties": {
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "recordedBy": { "type": "string" },
+        "recordedByName": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["amount", "description", "date", "recordedBy"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": { "schema": "Product", "description": "Inventory" },
+    "/clients/{clientId}": { "schema": "Client", "description": "Customers" },
+    "/payments/{paymentId}": { "schema": "Payment", "description": "Client payments" },
+    "/users/{userId}": { "schema": "UserProfile", "description": "User profiles" },
+    "/logs/{logId}": { "schema": "ActivityLog", "description": "System logs" },
+    "/suppliers/{supplierId}": { "schema": "Supplier", "description": "Vendors" },
+    "/purchase_orders/{orderId}": { "schema": "PurchaseOrder", "description": "Supply orders" },
+    "/stock_entries/{entryId}": { "schema": "StockEntry", "description": "Goods received" },
+    "/stock_exits/{exitId}": { "schema": "StockExit", "description": "Goods dispatched" },
+    "/notifications/{notificationId}": { "schema": "Notification", "description": "User notifications" },
+    "/expenses/{expenseId}": { "schema": "Expense", "description": "External expenses" }
+  }
+}

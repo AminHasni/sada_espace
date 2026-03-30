@@ -1,0 +1,429 @@
+{
+  "nav": {
+    "dashboard": "لوحة القيادة",
+    "stock": "المخزون",
+    "stockEntries": "مدخلات المخزون",
+    "stockExits": "مخرجات المخزون",
+    "suppliers": "الموردون",
+    "clients": "الزبائن والديون",
+    "expenses": "المصاريف",
+    "services": "الخدمات",
+    "users": "المستخدمون",
+    "profile": "ملفي الشخصي",
+    "logout": "تسجيل الخروج"
+  },
+  "common": {
+    "loading": "جاري تحميل مساحتك...",
+    "page": "صفحة",
+    "search": "بحث...",
+    "add": "إضافة",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "actions": "الإجراءات",
+    "status": "الحالة",
+    "date": "التاريخ",
+    "amount": "المبلغ",
+    "notes": "ملاحظات",
+    "total": "المجموع",
+    "confirm": "تأكيد",
+    "error": "خطأ",
+    "success": "نجاح",
+    "currency": "د.ت"
+  },
+  "dashboard": {
+    "welcome": "مرحباً، {{name}} 👋",
+    "subtitle": "إليك ما يحدث في شركتك اليوم.",
+    "todayDate": "تاريخ اليوم",
+    "stats": {
+      "stockValue": "قيمة المخزون (شراء)",
+      "potentialRevenue": "الإيرادات المحتملة",
+      "totalCredits": "إجمالي ديون الزبائن",
+      "stockAlerts": "تنبيهات المخزون"
+    },
+    "aiDescription": "استخدم ذكاءنا الاصطناعي للحصول على نصائح استراتيجية حول مخزونك وديونك.",
+    "analyzeStock": "تحليل المخزون",
+    "analyzeCredits": "تحليل الديون",
+    "analyzing": "جاري التحليل...",
+    "stockAnalysisTitle": "تحليل المخزون",
+    "creditAnalysisTitle": "تحليل الديون",
+    "financialOverview": "الإدارة المالية",
+    "revenueTrend": "تطور الإيرادات",
+    "financials": {
+      "totalSales": "إجمالي المبيعات",
+      "paymentsReceived": "المدفوعات المستلمة",
+      "outstandingCredits": "الديون الجارية",
+      "totalExpenses": "إجمالي المصاريف",
+      "netProfit": "صافي الربح"
+    },
+    "quickActions": {
+      "title": "إجراءات سريعة",
+      "newStockEntry": "إدخال مخزون جديد",
+      "newStockExit": "إخراج مخزون جديد",
+      "newProduct": "منتج جديد",
+      "newClient": "زبون جديد",
+      "newSupplier": "مورد جديد",
+      "newExpense": "مصروف جديد"
+    }
+  },
+  "stock": {
+    "title": "إدارة المخزون",
+    "subtitle": "إدارة المواد والمتغيرات ومستويات المخزون.",
+    "newProduct": "منتج جديد",
+    "aiAnalysis": "تحليل الذكاء الاصطناعي",
+    "analyzing": "جاري التحليل...",
+    "aiTitle": "نصائح إعادة التموين",
+    "searchPlaceholder": "البحث بالاسم أو المرجع...",
+    "allCategories": "جميع الفئات",
+    "allStock": "كل المخزون",
+    "lowStockOnly": "المخزون المنخفض فقط",
+    "lowStock": "مخزون منخفض",
+    "inStock": "متوفر",
+    "noDescription": "لا يوجد وصف متاح.",
+    "quantity": "الكمية",
+    "salePrice": "سعر البيع",
+    "variants": "المتغيرات",
+    "noCategory": "بدون فئة",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "deleteConfirm": "هل تريد حذف المنتج \"{{name}}\"؟",
+    "permissionDenied": "تم رفض الإذن",
+    "modal": {
+      "editTitle": "تعديل المنتج",
+      "newTitle": "منتج جديد",
+      "subtitle": "املأ معلومات المنتج التفصيلية."
+    },
+    "form": {
+      "name": "اسم المنتج",
+      "reference": "المرجع",
+      "category": "الفئة",
+      "categoryPlaceholder": "مثال: إلكترونيات، ملابس...",
+      "unit": "وحدة القياس",
+      "description": "الوصف",
+      "purchasePrice": "سعر الشراء (د.ت)",
+      "salePrice": "سعر البيع (د.ت)",
+      "stockTotal": "إجمالي المخزون",
+      "minStock": "حد التنبيه",
+      "variantsTitle": "متغيرات المنتج",
+      "optional": "اختياري",
+      "variantNamePlaceholder": "الاسم (مثال: XL، أحمر)",
+      "variantStockPlaceholder": "المخزون",
+      "variantPricePlaceholder": "+/- السعر (د.ت)",
+      "addVariant": "إضافة",
+      "cancel": "إلغاء",
+      "save": "حفظ التغييرات",
+      "create": "إنشاء المنتج"
+    },
+    "units": {
+      "unit": "وحدة",
+      "kg": "كيلوغرام (كغ)",
+      "litre": "لتر (ل)",
+      "metre": "متر (م)",
+      "paquet": "حزمة"
+    }
+  },
+  "clients": {
+    "title": "إدارة الزبائن",
+    "subtitle": "إدارة زبائنك وتتبع ديونهم.",
+    "newClient": "زبون جديد",
+    "searchPlaceholder": "البحث بالاسم، الهاتف أو البريد الإلكتروني...",
+    "totalCredit": "إجمالي الدين",
+    "deleteConfirm": "هل تريد حذف الزبون \"{{name}}\"؟",
+    "permissionDenied": "تم رفض الإذن",
+    "currentCredit": "الدين الحالي",
+    "recordPayment": "تسجيل دفعة",
+    "modal": {
+      "editTitle": "تعديل الزبون",
+      "newTitle": "زبون جديد",
+      "paymentTitle": "تسجيل دفعة",
+      "subtitle": "معلومات الاتصال والدين."
+    },
+    "form": {
+      "name": "الاسم الكامل",
+      "phone": "الهاتف",
+      "email": "البريد الإلكتروني",
+      "address": "العنوان",
+      "creditLimit": "حد الائتمان",
+      "amount": "المبلغ",
+      "date": "التاريخ",
+      "method": "الطريقة",
+      "notes": "ملاحظات",
+      "initialCredit": "الدين الأولي (د.ت)",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "create": "إنشاء الزبون"
+    }
+  },
+  "suppliers": {
+    "title": "الموردون",
+    "subtitle": "إدارة شركائك ومورديك",
+    "newSupplier": "مورد جديد",
+    "searchPlaceholder": "البحث عن مورد...",
+    "deleteConfirm": "هل تريد حذف المورد \"{{name}}\"؟",
+    "modal": {
+      "editTitle": "تعديل المورد",
+      "newTitle": "مورد جديد"
+    },
+    "form": {
+      "name": "اسم المورد *",
+      "contactName": "جهة الاتصال الرئيسية",
+      "phone": "الهاتف",
+      "email": "البريد الإلكتروني",
+      "category": "الفئة",
+      "categoryPlaceholder": "مثال: إلكترونيات، أثاث...",
+      "address": "العنوان",
+      "cancel": "إلغاء",
+      "update": "تحديث",
+      "save": "حفظ"
+    }
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "email": "البريد الإلكتروني المهني",
+    "password": "كلمة المرور",
+    "signIn": "دخول",
+    "forgotPassword": "هل نسيت كلمة المرور؟",
+    "register": "إنشاء حساب",
+    "reset": "إعادة تعيين",
+    "welcomeBack": "مرحباً بعودتك!",
+    "resetInstructions": "أدخل بريدك الإلكتروني لتلقي رابط الاسترداد.",
+    "registerInstructions": "ابدأ في إدارة عملك اليوم.",
+    "loginInstructions": "سجل الدخول للوصول إلى لوحة القيادة الخاصة بك.",
+    "fullName": "الاسم الكامل",
+    "sendLink": "إرسال الرابط",
+    "createAccount": "إنشاء حسابي",
+    "orContinueWith": "أو المتابعة باستخدام",
+    "testAccounts": "حسابات تجريبية",
+    "backToLogin": "العودة إلى تسجيل الدخول",
+    "alreadyHaveAccount": "هل لديك حساب بالفعل؟ تسجيل الدخول",
+    "noAccount": "ليس لديك حساب؟ اشترك الآن",
+    "heroTitle": "قم بإدارة مخزونك وديونك بأناقة.",
+    "heroSubtitle": "حل حديث وسريع وذكي للتجار التونسيين. تتبع كل دينار بدقة.",
+    "secure": "آمن",
+    "aiAnalysis": "تحليلات ذكية"
+  },
+  "users": {
+    "title": "المستخدمون والنشاط",
+    "subtitle": "إدارة الوصول ومراقبة إجراءات النظام.",
+    "searchPlaceholder": "البحث عن مستخدم...",
+    "restrictedAccess": "وصول مقيد",
+    "restrictedMessage": "يمكن للمسؤولين فقط الوصول إلى إدارة المستخدمين وسجل النشاط.",
+    "table": {
+      "user": "المستخدم",
+      "role": "الدور",
+      "action": "الإجراء"
+    },
+    "roles": {
+      "admin": "مسؤول",
+      "warehouseman": "أمين مخزن"
+    },
+    "activity": {
+      "title": "سجل النشاط",
+      "noActivity": "لا يوجد نشاط حديث."
+    },
+    "modal": {
+      "title": "تعديل الدور",
+      "subtitle": "تحديد صلاحيات المستخدم.",
+      "name": "الاسم الكامل",
+      "selectRole": "اختر دوراً",
+      "cancel": "إلغاء",
+      "update": "تحديث"
+    },
+    "addUser": "إضافة مستخدم"
+  },
+  "profile": {
+    "title": "ملفي الشخصي",
+    "subtitle": "إدارة معلوماتك الشخصية وأمان حسابك.",
+    "edit": "تعديل الملف الشخصي",
+    "cancel": "إلغاء",
+    "successUpdate": "تم تحديث الملف الشخصي بنجاح!",
+    "successReset": "تم إرسال بريد إعادة تعيين كلمة المرور!",
+    "form": {
+      "fullName": "الاسم الكامل",
+      "phone": "الهاتف",
+      "email": "البريد الإلكتروني",
+      "emailNote": "لا يمكن تغيير البريد الإلكتروني لأسباب أمنية.",
+      "save": "حفظ التغييرات"
+    },
+    "security": {
+      "title": "أمان الحساب",
+      "password": "كلمة المرور",
+      "lastModified": "آخر تعديل: غير معروف",
+      "resetEmail": "إعادة تعيين عبر البريد",
+      "sending": "جاري الإرسال..."
+    },
+    "summary": {
+      "memberSince": "عضو منذ",
+      "status": "الحالة",
+      "active": "نشط",
+      "verified": "تم التحقق",
+      "yes": "نعم",
+      "help": "هل تحتاج إلى مساعدة في حسابك؟ اتصل بمسؤول النظام لأي طلب لتغيير الدور أو الصلاحيات."
+    }
+  },
+  "stockEntries": {
+    "title": "مدخلات المخزون",
+    "subtitle": "استلم بضائعك وحدث مخزونك",
+    "newReception": "استلام جديد",
+    "searchPlaceholder": "البحث عن استلام...",
+    "purchaseReception": "استلام طلب شراء: {{number}}",
+    "directEntry": "إدخال مباشر",
+    "receivedBy": "استلم من قبل: {{name}}",
+    "table": {
+      "product": "المنتج",
+      "receivedQuantity": "الكمية المستلمة",
+      "batchExpiry": "الدفعة / الصلاحية"
+    },
+    "modal": {
+      "title": "استلام بضائع جديد",
+      "entryNumber": "رقم الاستلام",
+      "type": "نوع الإدخال *",
+      "purchaseOrder": "طلب الشراء *",
+      "reference": "المرجع / المصدر",
+      "date": "تاريخ الاستلام",
+      "itemsTitle": "الأصناف المراد استلامها",
+      "addItem": "إضافة صنف",
+      "product": "المنتج",
+      "quantity": "الكمية المستلمة",
+      "batch": "رقم الدفعة",
+      "expiry": "تاريخ الصلاحية",
+      "notes": "ملاحظات",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد الاستلام",
+      "selectPO": "اختر طلب شراء",
+      "selectProduct": "اختر منتجاً",
+      "noItemsManual": "لم يتم إضافة أي صنف. انقر على \"إضافة صنف\"."
+    },
+    "types": {
+      "return_from_client": "إرجاع من عميل",
+      "adjustment_plus": "تعديل إيجابي"
+    }
+  },
+  "stockExits": {
+    "title": "مخرجات المخزون",
+    "subtitle": "إدارة التسليمات والمبيعات والاستهلاك الداخلي",
+    "newExit": "إخراج جديد",
+    "searchPlaceholder": "البحث عن مخرج...",
+    "performedBy": "تم من قبل: {{name}}",
+    "table": {
+      "product": "المنتج",
+      "quantity": "الكمية الخارجة",
+      "unitPrice": "سعر الوحدة",
+      "total": "الإجمالي"
+    },
+    "modal": {
+      "title": "إخراج مخزون جديد",
+      "exitNumber": "رقم الإخراج",
+      "type": "نوع الإخراج *",
+      "date": "التاريخ",
+      "destination": "الوجهة",
+      "selectClient": "اختر عميلاً",
+      "projectName": "اسم المشروع",
+      "serviceReason": "المصلحة / السبب",
+      "itemsTitle": "الأصناف المراد إخراجها",
+      "addItem": "إضافة صنف",
+      "product": "المنتج",
+      "quantity": "الكمية",
+      "unitPrice": "سعر البيع",
+      "total": "الإجمالي",
+      "notes": "ملاحظات",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد الإخراج",
+      "selectProduct": "اختر منتجاً",
+      "noItems": "لم يتم إضافة أي صنف. انقر على \"إضافة صنف\".",
+      "insufficientStock": "المخزون غير كافٍ! المتاح: {{quantity}}"
+    },
+    "types": {
+      "sale": "بيع",
+      "internal_consumption": "استهلاك داخلي",
+      "project_delivery": "تسليم مشروع",
+      "return_to_supplier": "إرجاع للمورد",
+      "adjustment_minus": "تعديل سلبي"
+    }
+  },
+  "expenses": {
+    "title": "المصاريف الخارجية",
+    "subtitle": "إدارة وتتبع المصاريف التشغيلية للشركة.",
+    "newExpense": "مصروف جديد",
+    "exportCSV": "تصدير تقرير",
+    "searchPlaceholder": "البحث حسب الوصف أو الفئة...",
+    "recordedBy": "سجل من قبل: {{name}}",
+    "table": {
+      "description": "الوصف",
+      "category": "الفئة",
+      "amount": "المبلغ",
+      "date": "التاريخ"
+    },
+    "modal": {
+      "newTitle": "تسجيل مصروف",
+      "editTitle": "تعديل المصروف",
+      "amount": "المبلغ (د.ت) *",
+      "description": "الوصف التوضيحي *",
+      "category": "الفئة",
+      "date": "تاريخ المصروف",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "confirm": "تأكيد التسجيل"
+    },
+    "deleteConfirm": "هل تريد حذف هذا المصروف بقيمة {{amount}} د.ت؟",
+    "noExpenses": "لا توجد مصاريف مسجلة."
+  },
+  "services": {
+    "title": "الخدمات",
+    "subtitle": "إدارة الخدمات المقدمة والمفوترة.",
+    "newService": "خدمة جديدة",
+    "noServices": "لا توجد خدمات مسجلة.",
+    "modal": {
+      "newTitle": "تسجيل خدمة",
+      "editTitle": "تعديل الخدمة"
+    }
+  },
+  "purchaseOrders": {
+    "title": "طلبات الشراء",
+    "subtitle": "إدارة التوريدات من الموردين",
+    "newPO": "طلب شراء جديد",
+    "searchPlaceholder": "البحث عن طلب شراء...",
+    "totalAmount": "إجمالي الطلب",
+    "table": {
+      "product": "المنتج",
+      "ordered": "مطلوب",
+      "received": "مستلم",
+      "unitPrice": "سعر الوحدة",
+      "total": "الإجمالي"
+    },
+    "status": {
+      "received": "مستلم",
+      "partially_received": "مستلم جزئياً",
+      "ordered": "مطلوب",
+      "cancelled": "ملغى",
+      "draft": "مسودة"
+    },
+    "modal": {
+      "newTitle": "طلب شراء جديد",
+      "editTitle": "تعديل طلب الشراء",
+      "orderNumber": "رقم الطلب",
+      "supplier": "المورد *",
+      "date": "تاريخ الطلب",
+      "itemsTitle": "الأصناف",
+      "addItem": "إضافة صنف",
+      "product": "المنتج",
+      "quantity": "الكمية",
+      "unitPrice": "سعر الشراء",
+      "total": "الإجمالي",
+      "notes": "ملاحظات / تعليمات",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد الطلب",
+      "update": "تحديث",
+      "selectSupplier": "اختر مورداً",
+      "selectProduct": "اختر منتجاً",
+      "noItems": "لم يتم إضافة أي صنف. انقر على \"إضافة صنف\"."
+    },
+    "errorBoundary": {
+      "title": "عذراً! حدث خطأ ما",
+      "defaultMessage": "حدث خطأ غير متوقع.",
+      "permissionDenied": "ليس لديك الأذونات اللازمة لإجراء هذا العمل أو الوصول إلى هذه البيانات.",
+      "reload": "إعادة تحميل التطبيق"
+    }
+  }
+}

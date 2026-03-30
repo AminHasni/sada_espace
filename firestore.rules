@@ -124,6 +124,13 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && isAdmin() && isNotPaused();
     }
 
+    match /services/{id} {
+      allow read: if isAuthenticated() && isNotPaused();
+      allow create: if isAuthenticated() && (isAdmin() || isWarehouseman()) && isNotPaused();
+      allow update: if isAuthenticated() && isAdmin() && isNotPaused();
+      allow delete: if isAuthenticated() && isAdmin() && isNotPaused();
+    }
+
     // Catch-all for other paths
     match /{path=**} {
       allow read: if isAdmin();

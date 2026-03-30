@@ -189,99 +189,126 @@ const Clients: React.FC = () => {
         </div>
       </div>
 
-      {/* Clients Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredClients.map((client) => (
-          <div key={client.id} className="card group relative overflow-hidden">
-            <div className={cn(
-              "absolute top-0 left-0 w-1 h-full",
-              client.totalCredit > 0 ? "bg-danger" : "bg-success"
-            )}></div>
-            
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                    <User size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white">{client.name}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{client.phone}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  {(profile?.role === 'admin' || profile?.role === 'warehouseman') && (
-                    <button
-                      onClick={() => handleOpenModal(client)}
-                      className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
-                      title={t('clients.edit')}
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                  )}
-                  {profile?.role === 'admin' && (
-                    <button
-                      onClick={() => handleDelete(client.id!, client.name)}
-                      className="p-2 text-slate-400 hover:text-danger hover:bg-danger/5 rounded-lg transition-all"
-                      title={t('clients.delete')}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-4 mb-6">
-                {client.email && (
-                  <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                    <Mail size={16} className="text-slate-400" />
-                    <span>{client.email}</span>
-                  </div>
-                )}
-                {client.address && (
-                  <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                    <MapPin size={16} className="text-slate-400" />
-                    <span className="line-clamp-1">{client.address}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-6 border-t border-slate-100 dark:border-slate-700 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('clients.creditLimit')}</span>
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                    {client.creditLimit?.toLocaleString() || 0} <span className="text-[10px] font-normal text-slate-400">{t('common.currency')}</span>
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('clients.totalCredit')}</span>
-                  <span className={cn(
-                    "text-xl font-display font-bold",
-                    client.totalCredit > (client.creditLimit || 0) ? "text-danger" : "text-success"
-                  )}>
-                    {client.totalCredit.toLocaleString()} <span className="text-xs font-sans font-normal text-slate-400">{t('common.currency')}</span>
-                  </span>
-                </div>
-                
-                {(profile?.role === 'admin' || profile?.role === 'warehouseman') && (
-                  <button
-                    onClick={() => handleOpenPaymentModal(client)}
-                    disabled={client.totalCredit <= 0}
+      {/* Clients Table */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800">
+              <tr>
+                <th className="px-6 py-4">{t('clients.form.name')}</th>
+                <th className="px-6 py-4">{t('clients.form.phone')}</th>
+                <th className="px-6 py-4">{t('clients.form.email')}</th>
+                <th className="px-6 py-4 text-right">{t('clients.creditLimit')}</th>
+                <th className="px-6 py-4 text-right">{t('clients.totalCredit')}</th>
+                <th className="px-6 py-4 text-center">{t('common.status', 'Statut')}</th>
+                <th className="px-6 py-4 text-right">{t('common.actions', 'Actions')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredClients.map((client) => {
+                const isOverLimit = client.totalCredit > (client.creditLimit || 0);
+                return (
+                  <tr 
+                    key={client.id} 
                     className={cn(
-                      "w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all font-bold text-sm",
-                      client.totalCredit <= 0 
-                        ? "bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-500"
-                        : "bg-success/10 text-success hover:bg-success hover:text-white"
+                      "hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors",
+                      isOverLimit && "bg-danger/[0.02] hover:bg-danger/[0.04]"
                     )}
                   >
-                    <Wallet size={16} />
-                    {t('clients.recordPayment', 'Enregistrer Paiement')}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                          <User size={16} />
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900 dark:text-white">{client.name}</div>
+                          {client.address && (
+                            <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                              <MapPin size={12} />
+                              <span className="line-clamp-1">{client.address}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                      {client.phone || '-'}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                      {client.email || '-'}
+                    </td>
+                    <td className="px-6 py-4 text-right font-medium text-slate-700 dark:text-slate-300">
+                      {client.creditLimit?.toLocaleString() || 0} {t('common.currency')}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className={cn(
+                        "font-bold",
+                        isOverLimit ? "text-danger" : client.totalCredit > 0 ? "text-orange-500" : "text-success"
+                      )}>
+                        {client.totalCredit.toLocaleString()} {t('common.currency')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={cn(
+                        "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider inline-block",
+                        client.totalCredit <= 0 ? "bg-success/10 text-success" : 
+                        isOverLimit ? "bg-danger/10 text-danger" : "bg-orange-500/10 text-orange-500"
+                      )}>
+                        {client.totalCredit <= 0 ? t('common.paid', 'Réglé') : 
+                         isOverLimit ? t('common.overLimit', 'Dépassement') : t('common.credit', 'À crédit')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {(profile?.role === 'admin' || profile?.role === 'warehouseman') && (
+                          <button
+                            onClick={() => handleOpenPaymentModal(client)}
+                            disabled={client.totalCredit <= 0}
+                            className={cn(
+                              "p-2 rounded-lg transition-all",
+                              client.totalCredit <= 0 
+                                ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                                : "text-success hover:bg-success/10"
+                            )}
+                            title={t('clients.recordPayment', 'Enregistrer Paiement')}
+                          >
+                            <Wallet size={16} />
+                          </button>
+                        )}
+                        {(profile?.role === 'admin' || profile?.role === 'warehouseman') && (
+                          <button
+                            onClick={() => handleOpenModal(client)}
+                            className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
+                            title={t('clients.edit')}
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                        )}
+                        {profile?.role === 'admin' && (
+                          <button
+                            onClick={() => handleDelete(client.id!, client.name)}
+                            className="p-2 text-slate-400 hover:text-danger hover:bg-danger/5 rounded-lg transition-all"
+                            title={t('clients.delete')}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredClients.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                    <User size={32} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+                    {t('clients.noClients', 'Aucun client trouvé')}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modal */}

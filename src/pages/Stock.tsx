@@ -361,7 +361,7 @@ const Stock: React.FC = () => {
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
                     <Package size={32} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-                    {t('stock.noProducts', 'Aucun produit trouvé')}
+                    {t('stock.noProducts')}
                   </td>
                 </tr>
               )}
@@ -593,7 +593,7 @@ const Stock: React.FC = () => {
                     <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('stock.form.variants')}</h4>
                     {formData.variants && formData.variants.length > 0 && (
                       <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase">
-                        {formData.variants.length} {formData.variants.length > 1 ? 'Variantes' : 'Variante'}
+                        {formData.variants.length} {t('stock.form.variant')}
                       </span>
                     )}
                   </div>
@@ -603,7 +603,7 @@ const Stock: React.FC = () => {
                       <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
                         <div className="min-w-[120px]">
                           <span className="text-sm font-bold text-slate-900 dark:text-white block truncate">{v.name}</span>
-                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">Variante</span>
+                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">{t('stock.form.variant')}</span>
                         </div>
                         
                         <div className="flex flex-wrap items-center gap-4">

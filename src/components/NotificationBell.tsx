@@ -86,6 +86,7 @@ const NotificationBell: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={t('notifications.title')}
         className={cn(
           "relative p-2 rounded-xl transition-all",
           isOpen 

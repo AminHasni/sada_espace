@@ -34,13 +34,25 @@
     "confirm": "Confirmer",
     "error": "Erreur",
     "success": "Succès",
-    "currency": "DT"
+    "currency": "DT",
+    "theme": "Thème",
+    "language": "Langue",
+    "period": "Période",
+    "na": "N/A",
+    "credit": "Crédit",
+    "allCategories": "Toutes les catégories",
+    "exportCSV": "Exporter CSV",
+    "description": "Description",
+    "price": "Prix"
   },
   "dashboard": {
     "welcome": "Bonjour, {{name}} 👋",
     "subtitle": "Voici ce qui se passe dans votre entreprise aujourd'hui.",
     "todayDate": "Date d'aujourd'hui",
+    "generateReport": "Générer un rapport",
     "stats": {
+      "totalProducts": "Total Produits",
+      "totalQuantity": "Quantité Totale",
       "stockValue": "Valeur Stock (Achat)",
       "potentialRevenue": "Revenu Potentiel",
       "totalCredits": "Total Crédits Clients",
@@ -57,6 +69,7 @@
     "financials": {
       "totalSales": "Ventes Totales",
       "paymentsReceived": "Paiements Reçus",
+      "totalServices": "Total Services",
       "outstandingCredits": "Crédits en Cours",
       "totalExpenses": "Dépenses Totales",
       "netProfit": "Recette Nette"
@@ -142,6 +155,7 @@
   "clients": {
     "title": "Gestion des Clients",
     "subtitle": "Gérez vos clients et suivez leurs crédits.",
+    "creditLimit": "Limite de crédit",
     "newClient": "Nouveau Client",
     "searchPlaceholder": "Rechercher par nom, téléphone ou email...",
     "totalCredit": "Crédit Total",

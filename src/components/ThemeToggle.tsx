@@ -2,6 +2,7 @@ import React from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { cn } from '../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface ThemeToggleProps {
   className?: string;
@@ -9,6 +10,7 @@ interface ThemeToggleProps {
 
 const ThemeToggle: React.FC<ThemeToggleProps> = ({ className }) => {
   const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <button
@@ -20,7 +22,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className }) => {
           : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50",
         className
       )}
-      aria-label="Toggle theme"
+      aria-label={t('common.theme')}
     >
       {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
     </button>

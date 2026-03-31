@@ -24,12 +24,9 @@ const hasArabic = (text: string) => /[\u0600-\u06FF]/.test(text);
 
 // Use more reliable font sources with CORS support
 const AMIRI_FONT_URLS = [
-  'https://cdn.jsdelivr.net/gh/googlefonts/amiri@main/fonts/ttf/Amiri-Regular.ttf',
-  'https://cdn.jsdelivr.net/npm/amiri-font@0.0.3/Amiri-Regular.ttf',
-  'https://unpkg.com/@fontsource/amiri/files/amiri-arabic-400-normal.ttf',
-  'https://cdn.jsdelivr.net/gh/alif-type/amiri@0.113/fonts/ttf/Amiri-Regular.ttf',
-  'https://fonts.gstatic.com/s/amiri/v28/J7afp9id8znt9L06Z97S.ttf',
-  'https://raw.githubusercontent.com/googlefonts/amiri/main/fonts/ttf/Amiri-Regular.ttf'
+  'https://github.com/googlefonts/amiri/raw/master/fonts/ttf/Amiri-Regular.ttf',
+  'https://github.com/googlefonts/amiri/raw/main/fonts/ttf/Amiri-Regular.ttf',
+  'https://cdn.jsdelivr.net/gh/googlefonts/amiri@main/fonts/ttf/Amiri-Regular.ttf'
 ];
 
 let cachedFontBase64: string | null = null;
@@ -483,6 +480,7 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
         t('common.client', 'Client'),
         t('common.amount', 'Montant'),
         t('common.method', 'Méthode'),
+        t('common.notes', 'Notes'),
         t('common.user', 'Magasinier')
       ].map(formatText)],
       body: data.payments.map(p => [
@@ -492,6 +490,7 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
         p.method === 'cash' ? t('common.cash', 'Espèces') :
         p.method === 'check' ? t('common.check', 'Chèque') :
         t('common.transfer', 'Virement'),
+        p.notes || '-',
         p.performedByName || '-'
       ].map(formatText)),
       theme: 'striped',

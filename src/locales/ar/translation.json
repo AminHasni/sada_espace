@@ -34,10 +34,18 @@
     "error": "خطأ",
     "success": "نجاح",
     "currency": "د.ج",
+    "theme": "السمة",
+    "language": "اللغة",
     "filter": "تصفية",
     "all": "الكل",
     "period": "الفترة",
-    "permissionDenied": "وصول مرفوض"
+    "permissionDenied": "وصول مرفوض",
+    "na": "غير متوفر",
+    "credit": "الائتمان",
+    "allCategories": "جميع الفئات",
+    "exportCSV": "تصدير CSV",
+    "description": "الوصف",
+    "price": "السعر"
   },
   "dashboard": {
     "welcome": "مرحباً، {{name}} 👋",
@@ -158,6 +166,7 @@
       "variantStockPlaceholder": "المخزون",
       "variantPricePlaceholder": "+/- السعر (د.ج)",
       "addVariant": "إضافة",
+      "variant": "متغير",
       "cancel": "إلغاء",
       "save": "حفظ التغييرات",
       "create": "إنشاء المنتج"
@@ -183,6 +192,7 @@
   "clients": {
     "title": "إدارة الزبائن",
     "subtitle": "إدارة زبائنك وتتبع ديونهم.",
+    "creditLimit": "حد الدين",
     "newClient": "زبون جديد",
     "addClient": "إضافة زبون",
     "searchPlaceholder": "البحث بالاسم، الهاتف أو البريد الإلكتروني...",
@@ -577,6 +587,45 @@
       "serviceDeleted": "تم حذف خدمة: {{name}}"
     }
   },
+  "reclamations": {
+    "title": "الشكاوى",
+    "subtitle": "إدارة ومتابعة الشكاوى والطلبات",
+    "newReclamation": "شكوى جديدة",
+    "searchPlaceholder": "البحث في الشكاوى...",
+    "noReclamations": "لا توجد شكاوى حالياً",
+    "deleteConfirm": "هل أنت متأكد من حذف هذه الشكوى؟",
+    "submittedBy": "بواسطة: {{name}}",
+    "table": {
+      "date": "التاريخ",
+      "title": "العنوان",
+      "priority": "الأولوية",
+      "status": "الحالة"
+    },
+    "priority": {
+      "low": "منخفضة",
+      "medium": "متوسطة",
+      "high": "عالية"
+    },
+    "status": {
+      "pending": "قيد الانتظار",
+      "in_progress": "قيد المعالجة",
+      "resolved": "تم الحل",
+      "rejected": "مرفوضة"
+    },
+    "modal": {
+      "newTitle": "تقديم شكوى جديدة",
+      "editTitle": "تعديل الشكوى",
+      "viewTitle": "تفاصيل الشكوى",
+      "title": "العنوان",
+      "description": "الوصف",
+      "priority": "الأولوية",
+      "status": "الحالة",
+      "resolutionNotes": "ملاحظات الحل",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "update": "تحديث"
+    }
+  },
   "purchaseOrders": {
     "title": "طلبات الشراء",
     "subtitle": "إدارة التوريدات من الموردين",
@@ -622,45 +671,6 @@
       "defaultMessage": "حدث خطأ غير متوقع.",
       "permissionDenied": "ليس لديك الأذونات اللازمة لإجراء هذا العمل أو الوصول إلى هذه البيانات.",
       "reload": "إعادة تحميل التطبيق"
-    },
-    "reclamations": {
-      "title": "الشكاوى",
-      "subtitle": "إدارة ومتابعة الشكاوى والطلبات",
-      "newReclamation": "شكوى جديدة",
-      "searchPlaceholder": "البحث في الشكاوى...",
-      "noReclamations": "لا توجد شكاوى حالياً",
-      "deleteConfirm": "هل أنت متأكد من حذف هذه الشكوى؟",
-      "submittedBy": "بواسطة: {{name}}",
-      "table": {
-        "date": "التاريخ",
-        "title": "العنوان",
-        "priority": "الأولوية",
-        "status": "الحالة"
-      },
-      "priority": {
-        "low": "منخفضة",
-        "medium": "متوسطة",
-        "high": "عالية"
-      },
-      "status": {
-        "pending": "قيد الانتظار",
-        "in_progress": "قيد المعالجة",
-        "resolved": "تم الحل",
-        "rejected": "مرفوضة"
-      },
-      "modal": {
-        "newTitle": "تقديم شكوى جديدة",
-        "editTitle": "تعديل الشكوى",
-        "viewTitle": "تفاصيل الشكوى",
-        "title": "العنوان",
-        "description": "الوصف",
-        "priority": "الأولوية",
-        "status": "الحالة",
-        "resolutionNotes": "ملاحظات الحل",
-        "cancel": "إلغاء",
-        "save": "حفظ",
-        "update": "تحديث"
-      }
     }
   }
 }

@@ -28,6 +28,7 @@ import { useAuth } from './AuthProvider';
 import { cn } from '../lib/utils';
 import ThemeToggle from './ThemeToggle';
 import NotificationBell from './NotificationBell';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const Layout: React.FC = () => {
   const { profile, logout } = useAuth();
@@ -135,6 +136,7 @@ const Layout: React.FC = () => {
           <span className="font-display font-bold text-base text-slate-900 dark:text-white">Espace Sadaa</span>
         </div>
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <ThemeToggle />
           <NotificationBell />
           <button 
@@ -204,6 +206,7 @@ const Layout: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-4">
+            <LanguageSwitcher />
             <ThemeToggle />
             <NotificationBell />
             

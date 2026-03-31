@@ -37,6 +37,16 @@ const Stock: React.FC = () => {
     variants: []
   });
 
+  // Automatically sync total stock with variants' stock
+  useEffect(() => {
+    if (formData.variants && formData.variants.length > 0) {
+      const totalStock = formData.variants.reduce((sum, v) => sum + (v.stockQuantity || 0), 0);
+      if (formData.stockQuantity !== totalStock) {
+        setFormData(prev => ({ ...prev, stockQuantity: totalStock }));
+      }
+    }
+  }, [formData.variants]);
+
   const [newVariant, setNewVariant] = useState<Partial<ProductVariant>>({
     name: '',
     stockQuantity: '' as any,
@@ -82,6 +92,12 @@ const Stock: React.FC = () => {
     e.preventDefault();
     if (!['admin', 'warehouseman'].includes(profile?.role || '')) return;
 
+    // Ensure stock consistency for products with variants
+    if (formData.variants && formData.variants.length > 0) {
+      const totalStock = formData.variants.reduce((sum, v) => sum + (v.stockQuantity || 0), 0);
+      formData.stockQuantity = totalStock;
+    }
+
     try {
       if (editingProduct) {
         await updateDoc(doc(db, 'products', editingProduct.id), formData);
@@ -116,10 +132,17 @@ const Stock: React.FC = () => {
 
   const handleAddVariant = () => {
     if (!newVariant.name) return;
+    
+    // If this is the first variant, default its stock to the current total stock if not specified
+    const currentTotal = formData.stockQuantity || 0;
+    const variantStock = ( (!formData.variants || formData.variants.length === 0) && (typeof newVariant.stockQuantity !== 'number'))
+      ? currentTotal 
+      : (newVariant.stockQuantity || 0);
+
     const variant: ProductVariant = {
       id: Date.now().toString(),
       name: newVariant.name,
-      stockQuantity: newVariant.stockQuantity || 0,
+      stockQuantity: variantStock,
       priceAdjustment: newVariant.priceAdjustment || 0
     };
     setFormData({
@@ -133,6 +156,13 @@ const Stock: React.FC = () => {
     setFormData({
       ...formData,
       variants: formData.variants?.filter(v => v.id !== id)
+    });
+  };
+
+  const handleUpdateVariant = (id: string, field: keyof ProductVariant, value: any) => {
+    setFormData({
+      ...formData,
+      variants: formData.variants?.map(v => v.id === id ? { ...v, [field]: value } : v)
     });
   };
 
@@ -428,12 +458,15 @@ const Stock: React.FC = () => {
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('stock.form.purchasePrice')}</label>
                   <input
                     required
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     className="input-field"
                     value={(formData.purchasePrice as any) === '' ? '' : (isNaN(formData.purchasePrice as any) ? '' : formData.purchasePrice)}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData({ ...formData, purchasePrice: val === '' ? '' as any : parseFloat(val) });
+                      const val = e.target.value.replace(',', '.');
+                      if (val === '' || !isNaN(Number(val)) || val === '.') {
+                        setFormData({ ...formData, purchasePrice: val === '' ? '' as any : parseFloat(val) });
+                      }
                     }}
                   />
                 </div>
@@ -441,12 +474,15 @@ const Stock: React.FC = () => {
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('stock.form.salePrice')}</label>
                   <input
                     required
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     className="input-field"
                     value={(formData.salePrice as any) === '' ? '' : (isNaN(formData.salePrice as any) ? '' : formData.salePrice)}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData({ ...formData, salePrice: val === '' ? '' as any : parseFloat(val) });
+                      const val = e.target.value.replace(',', '.');
+                      if (val === '' || !isNaN(Number(val)) || val === '.') {
+                        setFormData({ ...formData, salePrice: val === '' ? '' as any : parseFloat(val) });
+                      }
                     }}
                   />
                 </div>
@@ -454,25 +490,42 @@ const Stock: React.FC = () => {
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('stock.form.stockTotal')}</label>
                   <input
                     required
-                    type="number"
-                    className="input-field"
+                    type="text"
+                    inputMode="decimal"
+                    className={cn(
+                      "input-field",
+                      formData.variants && formData.variants.length > 0 && "bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed opacity-80"
+                    )}
+                    readOnly={formData.variants && formData.variants.length > 0}
                     value={(formData.stockQuantity as any) === '' ? '' : (isNaN(formData.stockQuantity as any) ? '' : formData.stockQuantity)}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData({ ...formData, stockQuantity: val === '' ? '' as any : parseFloat(val) });
+                      if (formData.variants && formData.variants.length > 0) return;
+                      const val = e.target.value.replace(',', '.');
+                      if (val === '' || !isNaN(Number(val)) || val === '.') {
+                        setFormData({ ...formData, stockQuantity: val === '' ? '' as any : parseFloat(val) });
+                      }
                     }}
                   />
+                  {formData.variants && formData.variants.length > 0 && (
+                    <p className="text-[10px] text-primary font-medium mt-1 italic">
+                      {t('stock.form.stockAutoCalculated', 'Calculé automatiquement à partir des variantes')}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('stock.form.minStock')}</label>
                   <input
                     required
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     className="input-field"
                     value={isNaN(formData.minStockLevel) ? '' : formData.minStockLevel}
                     onChange={(e) => {
-                      const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                      setFormData({ ...formData, minStockLevel: isNaN(val) ? 0 : val });
+                      const valStr = e.target.value.replace(',', '.');
+                      if (valStr === '' || !isNaN(Number(valStr)) || valStr === '.') {
+                        const val = valStr === '' ? 0 : parseFloat(valStr);
+                        setFormData({ ...formData, minStockLevel: isNaN(val) ? 0 : val });
+                      }
                     }}
                   />
                 </div>
@@ -497,20 +550,32 @@ const Stock: React.FC = () => {
                   </div>
                   <div>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       placeholder={t('stock.form.variantStockPlaceholder')}
                       className="input-field bg-white dark:bg-slate-800"
                       value={(newVariant.stockQuantity as any) === '' ? '' : newVariant.stockQuantity}
-                      onChange={(e) => setNewVariant({ ...newVariant, stockQuantity: e.target.value === '' ? '' as any : Number(e.target.value) })}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(',', '.');
+                        if (val === '' || !isNaN(Number(val)) || val === '.') {
+                          setNewVariant({ ...newVariant, stockQuantity: val === '' ? '' as any : parseFloat(val) });
+                        }
+                      }}
                     />
                   </div>
                   <div>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       placeholder={t('stock.form.variantPricePlaceholder')}
                       className="input-field bg-white dark:bg-slate-800"
                       value={(newVariant.priceAdjustment as any) === '' ? '' : newVariant.priceAdjustment}
-                      onChange={(e) => setNewVariant({ ...newVariant, priceAdjustment: e.target.value === '' ? '' as any : Number(e.target.value) })}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(',', '.');
+                        if (val === '' || !isNaN(Number(val)) || val === '.') {
+                          setNewVariant({ ...newVariant, priceAdjustment: val === '' ? '' as any : parseFloat(val) });
+                        }
+                      }}
                     />
                   </div>
                   <button
@@ -524,21 +589,65 @@ const Stock: React.FC = () => {
                 </div>
  
                 <div className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('stock.form.variants')}</h4>
+                    {formData.variants && formData.variants.length > 0 && (
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase">
+                        {formData.variants.length} {formData.variants.length > 1 ? 'Variantes' : 'Variante'}
+                      </span>
+                    )}
+                  </div>
+                  
                   {formData.variants?.map((v) => (
-                    <div key={v.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-primary/30 transition-colors">
-                      <div className="flex items-center gap-6">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white">{v.name}</span>
-                        <div className="flex gap-4 text-xs text-slate-500 dark:text-slate-400">
-                          <span>Stock: <b>{v.stockQuantity}</b></span>
-                          <span>Prix: <b>{v.priceAdjustment >= 0 ? '+' : ''}{v.priceAdjustment} {t('common.currency')}</b></span>
+                    <div key={v.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl hover:border-primary/30 transition-all gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
+                        <div className="min-w-[120px]">
+                          <span className="text-sm font-bold text-slate-900 dark:text-white block truncate">{v.name}</span>
+                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">Variante</span>
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Stock</label>
+                            <input 
+                              type="text"
+                              inputMode="decimal"
+                              className="w-24 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-bold text-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                              value={v.stockQuantity}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(',', '.');
+                                if (val === '' || !isNaN(Number(val)) || val === '.') {
+                                  handleUpdateVariant(v.id, 'stockQuantity', val === '' ? 0 : parseFloat(val));
+                                }
+                              }}
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">+/- Prix ({t('common.currency')})</label>
+                            <input 
+                              type="text"
+                              inputMode="decimal"
+                              className="w-28 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-bold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-primary/20 transition-all"
+                              value={v.priceAdjustment}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(',', '.');
+                                if (val === '' || !isNaN(Number(val)) || val === '.') {
+                                  handleUpdateVariant(v.id, 'priceAdjustment', val === '' ? 0 : parseFloat(val));
+                                }
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
+                      
                       <button
                         type="button"
                         onClick={() => handleRemoveVariant(v.id)}
-                        className="p-1.5 text-slate-400 hover:text-danger hover:bg-danger/5 rounded-lg transition-all"
+                        className="p-2.5 text-slate-400 hover:text-danger hover:bg-danger/5 rounded-xl transition-all self-end sm:self-center"
+                        title={t('common.delete')}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   ))}

@@ -26,7 +26,8 @@ import {
   ChevronUp,
   AlertTriangle,
   Briefcase,
-  Trash2
+  Trash2,
+  ArrowUpRight
 } from 'lucide-react';
 import { logActivity } from '../services/activity';
 import { notificationService } from '../services/notificationService';
@@ -46,6 +47,10 @@ const StockExits: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [expandedExitId, setExpandedExitId] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [listCategoryFilter, setListCategoryFilter] = useState('');
+  const [variantPickerProduct, setVariantPickerProduct] = useState<Product | null>(null);
+  const [variantQuantities, setVariantQuantities] = useState<Record<string, number>>({});
 
   const dateLocale = i18n.language === 'ar' ? arDZ : fr;
 
@@ -107,6 +112,9 @@ const StockExits: React.FC = () => {
       notes: '',
       items: []
     });
+    setProductSearch('');
+    setSelectedCategory('');
+    setVariantPickerProduct(null);
     setIsModalOpen(true);
   };
 
@@ -147,8 +155,15 @@ const StockExits: React.FC = () => {
       await runTransaction(db, async (transaction) => {
         const exitRef = doc(collection(db, 'stock_exits'));
         
-        // 1. All Reads
-        const productRefs = formData.items.map(item => doc(db, 'products', item.productId));
+        // 1. Group items by product to handle multiple variants of the same product
+        const itemsByProduct = formData.items.reduce((acc, item) => {
+          if (!acc[item.productId]) acc[item.productId] = [];
+          acc[item.productId].push(item);
+          return acc;
+        }, {} as Record<string, StockExitItem[]>);
+
+        const uniqueProductIds = Object.keys(itemsByProduct);
+        const productRefs = uniqueProductIds.map(id => doc(db, 'products', id));
         const productSnaps = await Promise.all(productRefs.map(ref => transaction.get(ref)));
         
         let clientSnap = null;
@@ -159,52 +174,83 @@ const StockExits: React.FC = () => {
         }
 
         // 2. All Writes
-        for (let i = 0; i < formData.items.length; i++) {
-          const item = formData.items[i];
+        for (let i = 0; i < uniqueProductIds.length; i++) {
+          const productId = uniqueProductIds[i];
           const productRef = productRefs[i];
           const productSnap = productSnaps[i];
+          const productItems = itemsByProduct[productId];
           
           if (!productSnap.exists()) {
-            throw new Error(`Produit non trouvé: ${item.productName}`);
+            throw new Error(`Produit non trouvé: ${productId}`);
           }
 
-          const currentStock = productSnap.data().stockQuantity || 0;
-          if (currentStock < item.quantity) {
-            throw new Error(`Stock insuffisant pour ${item.productName}. Disponible: ${currentStock}`);
+          const productData = productSnap.data() as Product;
+          const totalQuantityToExit = productItems.reduce((sum, item) => sum + item.quantity, 0);
+          const currentStock = productData.stockQuantity || 0;
+
+          if (currentStock < totalQuantityToExit) {
+            throw new Error(`Stock insuffisant pour ${productData.name}. Disponible: ${currentStock}, Demandé: ${totalQuantityToExit}`);
           }
 
-          const newStock = currentStock - item.quantity;
-          transaction.update(productRef, { stockQuantity: newStock });
+          let updatedVariants = productData.variants ? [...productData.variants] : undefined;
+          
+          // Update variant stocks if applicable
+          for (const item of productItems) {
+            if (item.variantId && updatedVariants) {
+              const variantIndex = updatedVariants.findIndex(v => v.id === item.variantId);
+              if (variantIndex !== -1) {
+                const variant = updatedVariants[variantIndex];
+                if (variant.stockQuantity < item.quantity) {
+                  throw new Error(`Stock insuffisant pour la variante ${variant.name} de ${productData.name}. Disponible: ${variant.stockQuantity}`);
+                }
+                updatedVariants[variantIndex] = {
+                  ...variant,
+                  stockQuantity: variant.stockQuantity - item.quantity
+                };
+              }
+            }
+          }
+
+          const newStock = currentStock - totalQuantityToExit;
+          transaction.update(productRef, { 
+            stockQuantity: newStock,
+            variants: updatedVariants,
+            updatedAt: new Date().toISOString()
+          });
 
           // Send low stock notification if below threshold
-          const minStock = productSnap.data().minStockLevel || 0;
+          const minStock = productData.minStockLevel || 0;
           if (newStock <= minStock) {
-            // Send notification to all admins and warehousemen
             notifiedUsers.forEach(user => {
               notificationService.sendNotification({
                 userId: user.uid,
                 title: 'Alerte Stock Faible',
-                message: `Le produit "${productSnap.data().name}" a atteint un niveau de stock faible (${newStock} restants).`,
+                message: `Le produit "${productData.name}" a atteint un niveau de stock faible (${newStock} restants).`,
                 type: 'warning',
-                link: `/stock?search=${encodeURIComponent(productSnap.data().name)}`
+                link: `/stock?search=${encodeURIComponent(productData.name)}`
               }).catch(err => console.error('Error sending low stock notification:', err));
             });
           }
           
-          const historyRef = doc(collection(db, 'stock_history'));
-          transaction.set(historyRef, {
-            productId: item.productId,
-            productName: item.productName,
-            type: 'exit',
-            quantity: item.quantity,
-            previousStock: currentStock,
-            newStock: newStock,
-            documentId: exitRef.id,
-            documentReference: formData.exitNumber,
-            date: new Date().toISOString(),
-            performedBy: profile.uid,
-            performedByName: profile.displayName
-          });
+          // History records for each variant/item
+          for (const item of productItems) {
+            const historyRef = doc(collection(db, 'stock_history'));
+            transaction.set(historyRef, {
+              productId: item.productId,
+              productName: item.productName,
+              variantId: item.variantId,
+              variantName: item.variantName,
+              type: 'exit',
+              quantity: item.quantity,
+              previousStock: currentStock, // This is slightly simplified for multi-item products
+              newStock: newStock,
+              documentId: exitRef.id,
+              documentReference: formData.exitNumber,
+              date: new Date().toISOString(),
+              performedBy: profile.uid,
+              performedByName: profile.displayName
+            });
+          }
         }
 
         // 3. Create Stock Exit
@@ -254,7 +300,10 @@ const StockExits: React.FC = () => {
           userId: profile.uid,
           userName: profile.displayName,
           action: 'stock_exit',
-          details: `Sortie de stock: ${formData.exitNumber} (${formData.type})`,
+          details: t('stockExits.logs.exit', { 
+            number: formData.exitNumber, 
+            type: t(`stockExits.types.${formData.type}`) 
+          }),
           timestamp: new Date().toISOString()
         });
       });
@@ -269,11 +318,18 @@ const StockExits: React.FC = () => {
     }
   };
 
-  const filteredExits = exits.filter(e => 
-    e.exitNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.projectName?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredExits = exits.filter(e => {
+    const matchesSearch = e.exitNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.projectName?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = !listCategoryFilter || e.items.some(item => {
+      const product = products.find(p => p.id === item.productId);
+      return product?.category === listCategoryFilter;
+    });
+
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="space-y-6">
@@ -289,15 +345,29 @@ const StockExits: React.FC = () => {
         )}
       </div>
 
-      <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-        <Search className="text-slate-400" size={20} />
-        <input 
-          type="text" 
-          placeholder={t('stockExits.searchPlaceholder')}
-          className="flex-1 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder:text-slate-400"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="flex flex-col md:flex-row items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+        <div className="flex-1 flex items-center gap-4">
+          <Search className="text-slate-400" size={20} />
+          <input 
+            type="text" 
+            placeholder={t('stockExits.searchPlaceholder')}
+            className="flex-1 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder:text-slate-400"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="w-full md:w-64">
+          <select
+            className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all text-sm"
+            value={listCategoryFilter}
+            onChange={(e) => setListCategoryFilter(e.target.value)}
+          >
+            <option value="">{t('stock.allCategories', 'Toutes les catégories')}</option>
+            {Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort().map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -324,7 +394,7 @@ const StockExits: React.FC = () => {
               <div className="flex flex-wrap items-center gap-6 text-sm">
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                   <User size={16} className="text-slate-400" />
-                  <span>{exit.clientName || exit.projectName || exit.serviceName || 'N/A'}</span>
+                  <span>{exit.clientName || exit.projectName || exit.serviceName || t('common.na')}</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                   <Calendar size={16} className="text-slate-400" />
@@ -413,34 +483,60 @@ const StockExits: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                   <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-lg">
-                    <Package size={20} className="text-primary" /> {t('stockExits.modal.itemsTitle', 'Articles à sortir')}
+                    <Package size={20} className="text-primary" /> {t('stockExits.modal.itemsTitle')}
                   </h3>
                 </div>
                 
-                <div className="mb-6 relative">
-                  <div className="relative">
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                  <div className="flex-1 relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                     <input
                       type="text"
-                      placeholder={t('stockExits.modal.searchProduct', 'Rechercher et ajouter un produit...')}
+                      placeholder={t('stockExits.modal.searchProduct')}
                       className="w-full pl-12 pr-4 py-3.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all font-medium text-lg"
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
                     />
                   </div>
+                  <div className="md:w-64">
+                    <select
+                      className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all font-medium h-[58px]"
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                    >
+                      <option value="">{t('stock.allCategories')}</option>
+                      {Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort().map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="relative">
                   {productSearch && (
-                    <div className="absolute z-20 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl max-h-64 overflow-y-auto">
-                      {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()) && !formData.items.find(i => i.productId === p.id)).map(p => (
+                    <div className="absolute z-20 w-full -mt-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl max-h-64 overflow-y-auto">
+                      {products.filter(p => 
+                        (p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.reference.toLowerCase().includes(productSearch.toLowerCase())) && 
+                        (!selectedCategory || p.category === selectedCategory) &&
+                        !formData.items.find(i => i.productId === p.id)
+                      ).map(p => (
                         <button
                           key={p.id}
                           type="button"
                           className="w-full text-left px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex justify-between items-center border-b border-slate-100 dark:border-slate-700/50 last:border-0 transition-colors"
                           onClick={() => {
-                            setFormData({
-                              ...formData,
-                              items: [...formData.items, { productId: p.id, productName: p.name, quantity: 1, unitPrice: p.salePrice === undefined ? '' as any : p.salePrice }]
-                            });
-                            setProductSearch('');
+                            if (p.variants && p.variants.length > 0) {
+                              setVariantPickerProduct(p);
+                              const initialQs: Record<string, number> = {};
+                              p.variants.forEach(v => initialQs[v.id] = 0);
+                              setVariantQuantities(initialQs);
+                            } else {
+                              setFormData({
+                                ...formData,
+                                items: [...formData.items, { productId: p.id, productName: p.name, quantity: 1, unitPrice: p.salePrice === undefined ? '' as any : p.salePrice }]
+                              });
+                              setProductSearch('');
+                            }
                           }}
                         >
                           <div>
@@ -449,16 +545,114 @@ const StockExits: React.FC = () => {
                           </div>
                           <div className="text-right">
                             <span className="text-sm font-bold text-primary block">{p.salePrice?.toLocaleString()} {t('common.currency')}</span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400">Stock: {p.stockQuantity}</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">{t('stock.currentStock')}: {p.stockQuantity}</span>
                           </div>
                         </button>
                       ))}
                       {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()) && !formData.items.find(i => i.productId === p.id)).length === 0 && (
                         <div className="px-6 py-8 text-slate-500 text-center flex flex-col items-center justify-center">
                           <Package size={32} className="text-slate-300 dark:text-slate-600 mb-2" />
-                          <p>Aucun produit trouvé ou déjà ajouté</p>
+                          <p>{t('stock.noProductFound')}</p>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {variantPickerProduct && (
+                    <div className="absolute z-30 inset-x-0 -mt-4 bg-white dark:bg-slate-800 border-2 border-primary/30 rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-top-4 duration-300">
+                      <div className="p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-primary/5">
+                        <div>
+                          <h4 className="font-bold text-slate-900 dark:text-white">{variantPickerProduct.name}</h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{t('stock.selectVariants')}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const allOut: Record<string, number> = {};
+                              variantPickerProduct.variants?.forEach(v => allOut[v.id] = v.stockQuantity);
+                              setVariantQuantities(allOut);
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs font-bold hover:bg-orange-200 transition-colors"
+                          >
+                            {t('stock.exitAll')}
+                          </button>
+                          <button onClick={() => setVariantPickerProduct(null)} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
+                            <X size={18} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="p-5 space-y-4 max-h-80 overflow-y-auto">
+                        {variantPickerProduct.variants?.map(variant => (
+                          <div key={variant.id} className="flex items-center justify-between gap-4 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                            <div className="flex-1">
+                              <span className="font-semibold text-slate-800 dark:text-slate-200 block">{variant.name}</span>
+                              <span className="text-xs text-slate-500 dark:text-slate-400">{t('stock.currentStock')}: <span className="font-bold text-slate-700 dark:text-slate-300">{variant.stockQuantity}</span></span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <input 
+                                type="number"
+                                min="0"
+                                max={variant.stockQuantity}
+                                className="w-24 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-bold text-center focus:ring-2 focus:ring-primary/20"
+                                value={variantQuantities[variant.id] || 0}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  setVariantQuantities({...variantQuantities, [variant.id]: Math.min(val, variant.stockQuantity)});
+                                }}
+                              />
+                              <button 
+                                type="button"
+                                onClick={() => setVariantQuantities({...variantQuantities, [variant.id]: variant.stockQuantity})}
+                                className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                title={t('stock.exitAllVariant')}
+                              >
+                                <ArrowUpRight size={18} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="p-5 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex gap-3">
+                        <button 
+                          type="button"
+                          onClick={() => setVariantPickerProduct(null)}
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 font-bold text-sm hover:bg-white transition-all"
+                        >
+                          {t('common.cancel')}
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const newItems: StockExitItem[] = [];
+                            Object.entries(variantQuantities).forEach(([vId, qty]) => {
+                              if (qty > 0) {
+                                const variant = variantPickerProduct.variants?.find(v => v.id === vId);
+                                newItems.push({
+                                  productId: variantPickerProduct.id,
+                                  productName: variantPickerProduct.name,
+                                  variantId: vId,
+                                  variantName: variant?.name,
+                                  quantity: qty,
+                                  unitPrice: variantPickerProduct.salePrice === undefined ? '' as any : variantPickerProduct.salePrice
+                                });
+                              }
+                            });
+                            
+                            if (newItems.length > 0) {
+                              setFormData({
+                                ...formData,
+                                items: [...formData.items, ...newItems]
+                              });
+                            }
+                            setVariantPickerProduct(null);
+                            setProductSearch('');
+                          }}
+                          className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md shadow-primary/20"
+                        >
+                          {t('common.add')} ({Object.values(variantQuantities).reduce((a, b) => a + b, 0)})
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -471,54 +665,64 @@ const StockExits: React.FC = () => {
                     return (
                       <div key={index} className={`grid grid-cols-1 md:grid-cols-12 gap-4 p-5 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border transition-all ${isStockInsufficient ? 'border-danger/50 bg-danger/5' : 'border-slate-200 dark:border-slate-700'}`}>
                         <div className="md:col-span-5 space-y-2">
-                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.product', 'Produit')}</label>
-                          <div className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-medium flex items-center h-[42px]">
-                            {item.productName}
+                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.product')}</label>
+                          <div className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-medium flex items-center h-[42px] justify-between">
+                            <span>{item.productName}</span>
+                            {item.variantName && (
+                              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                {item.variantName}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="md:col-span-2 space-y-2">
-                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.quantity', 'Quantité')}</label>
+                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.quantity')}</label>
                           <input 
-                            type="number" 
-                            min="1" 
+                            type="text" 
+                            inputMode="decimal"
                             required 
                             className={`w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-bold focus:border-primary focus:ring-primary/20 transition-all ${isStockInsufficient ? 'text-danger' : 'text-orange-600 dark:text-orange-400'}`}
                             value={isNaN(item.quantity) ? '' : item.quantity}
                             onChange={(e) => {
-                              const val = e.target.value === '' ? 0 : parseInt(e.target.value);
-                              updateItem(index, 'quantity', isNaN(val) ? 0 : val);
+                              const valStr = e.target.value.replace(',', '.');
+                              if (valStr === '' || !isNaN(Number(valStr)) || valStr === '.') {
+                                const val = valStr === '' ? 0 : parseFloat(valStr);
+                                updateItem(index, 'quantity', isNaN(val) ? 0 : val);
+                              }
                             }}
                           />
                         </div>
                         <div className="md:col-span-2 space-y-2">
-                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.unitPrice', 'Prix unitaire')}</label>
+                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.unitPrice')}</label>
                           <input 
-                            type="number" 
-                            min="0" 
+                            type="text" 
+                            inputMode="decimal"
                             required 
                             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-primary/20 transition-all"
                             value={(item.unitPrice as any) === '' ? '' : (isNaN(item.unitPrice as any) ? '' : item.unitPrice)}
                             onChange={(e) => {
-                              const val = e.target.value;
-                              updateItem(index, 'unitPrice', val === '' ? '' as any : parseFloat(val));
+                              const val = e.target.value.replace(',', '.');
+                              if (val === '' || !isNaN(Number(val)) || val === '.') {
+                                updateItem(index, 'unitPrice', val === '' ? '' as any : parseFloat(val));
+                              }
                             }}
                           />
                         </div>
                         <div className="md:col-span-2 space-y-2">
-                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.total', 'Total')}</label>
+                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.total')}</label>
                           <div className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center h-[42px]">
                             {(item.quantity * (Number(item.unitPrice) || 0)).toLocaleString()}
                           </div>
                         </div>
                         <div className="md:col-span-1 flex items-end justify-center pb-1">
-                          <button type="button" onClick={() => removeItem(index)} className="p-2.5 text-danger hover:bg-danger/10 rounded-xl transition-colors" title="Supprimer">
+                          <button type="button" onClick={() => removeItem(index)} className="p-2.5 text-danger hover:bg-danger/10 rounded-xl transition-colors" title={t('common.delete')}>
                             <Trash2 size={18} />
                           </button>
                         </div>
                         {isStockInsufficient && (
                           <div className="md:col-span-12 flex items-center gap-2 text-danger text-xs font-bold mt-1 bg-danger/10 p-2 rounded-lg">
                             <AlertTriangle size={14} />
-                            {t('stockExits.modal.insufficientStock', `Stock insuffisant. Disponible: ${product.stockQuantity}`, { quantity: product.stockQuantity })}
+                            {t('stockExits.modal.insufficientStock', { quantity: product.stockQuantity })}
                           </div>
                         )}
                       </div>
@@ -527,20 +731,20 @@ const StockExits: React.FC = () => {
                   {formData.items.length === 0 && (
                     <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/30">
                       <Package size={32} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-                      <p>{t('stockExits.modal.noItems', 'Aucun article ajouté. Recherchez et sélectionnez un produit ci-dessus.')}</p>
+                      <p>{t('stockExits.modal.noItems')}</p>
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('stockExits.modal.notes', 'Notes / Observations')}</label>
-                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all" rows={3} placeholder="Ajouter des notes optionnelles..." value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('stockExits.modal.notes')}</label>
+                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all" rows={3} placeholder={t('stockExits.modal.notesPlaceholder')} value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
               </div>
             </form>
             <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex gap-4">
               <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-white dark:hover:bg-slate-800 transition-all shadow-sm">
-                {t('stockExits.modal.cancel', 'Annuler')}
+                {t('stockExits.modal.cancel')}
               </button>
               <button 
                 type="submit" 
@@ -551,7 +755,7 @@ const StockExits: React.FC = () => {
                 })}
                 className="flex-1 px-6 py-3.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {t('stockExits.modal.confirm', 'Valider la sortie')}
+                {t('stockExits.modal.confirm')}
               </button>
             </div>
           </div>

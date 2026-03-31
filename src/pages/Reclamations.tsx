@@ -7,13 +7,13 @@ import { Reclamation } from '../types';
 import { useAuth } from '../components/AuthProvider';
 import { Plus, Search, X, Calendar, Edit2, Trash2, MessageSquareWarning, Eye } from 'lucide-react';
 import { format } from 'date-fns';
-import { fr, arDZ } from 'date-fns/locale';
+import { fr } from 'date-fns/locale';
 import { cn } from '../lib/utils';
 import { logActivity } from '../services/activity';
 
 const Reclamations: React.FC = () => {
   const { user, profile } = useAuth();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [reclamations, setReclamations] = useState<Reclamation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,7 +22,7 @@ const Reclamations: React.FC = () => {
   const [editingReclamation, setEditingReclamation] = useState<Reclamation | null>(null);
   const [viewingReclamation, setViewingReclamation] = useState<Reclamation | null>(null);
 
-  const dateLocale = i18n.language === 'ar' ? arDZ : fr;
+  const dateLocale = fr;
 
   const [formData, setFormData] = useState({
     title: '',

@@ -33,13 +33,20 @@
     "confirm": "تأكيد",
     "error": "خطأ",
     "success": "نجاح",
-    "currency": "د.ت"
+    "currency": "د.ج",
+    "filter": "تصفية",
+    "all": "الكل",
+    "period": "الفترة",
+    "permissionDenied": "وصول مرفوض"
   },
   "dashboard": {
     "welcome": "مرحباً، {{name}} 👋",
     "subtitle": "إليك ما يحدث في شركتك اليوم.",
     "todayDate": "تاريخ اليوم",
+    "generateReport": "إنشاء تقرير",
     "stats": {
+      "totalProducts": "إجمالي المنتجات",
+      "totalQuantity": "الكمية الإجمالية",
       "stockValue": "قيمة المخزون (شراء)",
       "potentialRevenue": "الإيرادات المحتملة",
       "totalCredits": "إجمالي ديون الزبائن",
@@ -56,6 +63,7 @@
     "financials": {
       "totalSales": "إجمالي المبيعات",
       "paymentsReceived": "المدفوعات المستلمة",
+      "totalServices": "إجمالي الخدمات",
       "outstandingCredits": "الديون الجارية",
       "totalExpenses": "إجمالي المصاريف",
       "netProfit": "صافي الربح"
@@ -68,12 +76,22 @@
       "newClient": "زبون جديد",
       "newSupplier": "مورد جديد",
       "newExpense": "مصروف جديد"
+    },
+    "report": {
+      "title": "تقرير النشاط",
+      "summary": "الملخص المالي",
+      "trends": "اتجاهات النشاط",
+      "sales": "تفاصيل المبيعات",
+      "expenses": "تفاصيل المصاريف",
+      "payments": "تفاصيل المدفوعات",
+      "footer": "صفحة {{page}} من {{total}}"
     }
   },
   "stock": {
     "title": "إدارة المخزون",
     "subtitle": "إدارة المواد والمتغيرات ومستويات المخزون.",
     "newProduct": "منتج جديد",
+    "addProduct": "إضافة منتج",
     "aiAnalysis": "تحليل الذكاء الاصطناعي",
     "analyzing": "جاري التحليل...",
     "aiTitle": "نصائح إعادة التموين",
@@ -84,6 +102,7 @@
     "lowStock": "مخزون منخفض",
     "inStock": "متوفر",
     "noDescription": "لا يوجد وصف متاح.",
+    "noProducts": "لا توجد منتجات حالياً",
     "quantity": "الكمية",
     "salePrice": "سعر البيع",
     "variants": "المتغيرات",
@@ -92,10 +111,35 @@
     "delete": "حذف",
     "deleteConfirm": "هل تريد حذف المنتج \"{{name}}\"؟",
     "permissionDenied": "تم رفض الإذن",
+    "selectVariants": "اختر المتغيرات والكميات",
+    "currentStock": "المخزون الحالي",
+    "noProductFound": "لم يتم العثور على أي منتج أو تمت إضافته بالفعل",
+    "exitAll": "إخراج الكل",
+    "exitAllVariant": "إخراج كل هذا المتغير",
+    "table": {
+      "product": "المنتج",
+      "category": "الفئة",
+      "stock": "المخزون",
+      "price": "السعر",
+      "actions": "الإجراءات"
+    },
     "modal": {
       "editTitle": "تعديل المنتج",
       "newTitle": "منتج جديد",
-      "subtitle": "املأ معلومات المنتج التفصيلية."
+      "addTitle": "إضافة منتج جديد",
+      "subtitle": "املأ معلومات المنتج التفصيلية.",
+      "name": "اسم المنتج",
+      "reference": "المرجع",
+      "category": "الفئة",
+      "unit": "الوحدة",
+      "description": "الوصف",
+      "purchasePrice": "ثمن الشراء",
+      "salePrice": "ثمن البيع",
+      "stockQuantity": "كمية المخزون",
+      "minStockLevel": "الحد الأدنى للمخزون",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "update": "تحديث"
     },
     "form": {
       "name": "اسم المنتج",
@@ -104,19 +148,27 @@
       "categoryPlaceholder": "مثال: إلكترونيات، ملابس...",
       "unit": "وحدة القياس",
       "description": "الوصف",
-      "purchasePrice": "سعر الشراء (د.ت)",
-      "salePrice": "سعر البيع (د.ت)",
+      "purchasePrice": "سعر الشراء (د.ج)",
+      "salePrice": "سعر البيع (د.ج)",
       "stockTotal": "إجمالي المخزون",
       "minStock": "حد التنبيه",
       "variantsTitle": "متغيرات المنتج",
       "optional": "اختياري",
       "variantNamePlaceholder": "الاسم (مثال: XL، أحمر)",
       "variantStockPlaceholder": "المخزون",
-      "variantPricePlaceholder": "+/- السعر (د.ت)",
+      "variantPricePlaceholder": "+/- السعر (د.ج)",
       "addVariant": "إضافة",
       "cancel": "إلغاء",
       "save": "حفظ التغييرات",
       "create": "إنشاء المنتج"
+    },
+    "variants": {
+      "title": "المتغيرات",
+      "add": "إضافة متغير",
+      "name": "اسم المتغير",
+      "stock": "المخزون",
+      "priceAdjustment": "تعديل السعر",
+      "totalStockError": "يجب أن يكون مجموع مخزون المتغيرات مساوياً للمخزون الإجمالي للمنتج"
     },
     "units": {
       "unit": "وحدة",
@@ -132,17 +184,35 @@
     "title": "إدارة الزبائن",
     "subtitle": "إدارة زبائنك وتتبع ديونهم.",
     "newClient": "زبون جديد",
+    "addClient": "إضافة زبون",
     "searchPlaceholder": "البحث بالاسم، الهاتف أو البريد الإلكتروني...",
+    "noClients": "لا يوجد زبائن حالياً",
     "totalCredit": "إجمالي الدين",
     "deleteConfirm": "هل تريد حذف الزبون \"{{name}}\"؟",
     "permissionDenied": "تم رفض الإذن",
     "currentCredit": "الدين الحالي",
     "recordPayment": "تسجيل دفعة",
+    "table": {
+      "client": "الزبون",
+      "contact": "الاتصال",
+      "credit": "الدين",
+      "actions": "الإجراءات"
+    },
     "modal": {
       "editTitle": "تعديل الزبون",
       "newTitle": "زبون جديد",
+      "addTitle": "إضافة زبون جديد",
       "paymentTitle": "تسجيل دفعة",
-      "subtitle": "معلومات الاتصال والدين."
+      "subtitle": "معلومات الاتصال والدين.",
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "address": "العنوان",
+      "totalCredit": "إجمالي الدين",
+      "creditLimit": "حد الدين",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "update": "تحديث"
     },
     "form": {
       "name": "الاسم الكامل",
@@ -154,21 +224,59 @@
       "date": "التاريخ",
       "method": "الطريقة",
       "notes": "ملاحظات",
-      "initialCredit": "الدين الأولي (د.ت)",
+      "initialCredit": "الدين الأولي (د.ج)",
       "cancel": "إلغاء",
       "save": "حفظ",
       "create": "إنشاء الزبون"
+    },
+    "paymentModal": {
+      "title": "تسجيل دفعة لـ {{name}}",
+      "amount": "المبلغ",
+      "date": "التاريخ",
+      "method": "طريقة الدفع",
+      "notes": "ملاحظات",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد الدفع"
+    },
+    "methods": {
+      "cash": "نقداً",
+      "bank_transfer": "تحويل بنكي",
+      "check": "شيك"
+    },
+    "logs": {
+      "clientCreated": "تم إنشاء الزبون: {{name}}",
+      "clientUpdated": "تم تحديث الزبون: {{name}}",
+      "clientDeleted": "تم حذف الزبون: {{name}}",
+      "paymentRecorded": "تم تسجيل دفعة بقيمة {{amount}} للزبون {{name}}"
     }
   },
   "suppliers": {
     "title": "الموردون",
     "subtitle": "إدارة شركائك ومورديك",
     "newSupplier": "مورد جديد",
+    "addSupplier": "إضافة مورد",
     "searchPlaceholder": "البحث عن مورد...",
+    "noSuppliers": "لا يوجد موردون حالياً",
     "deleteConfirm": "هل تريد حذف المورد \"{{name}}\"؟",
+    "table": {
+      "supplier": "المورد",
+      "contact": "الاتصال",
+      "category": "الفئة",
+      "actions": "الإجراءات"
+    },
     "modal": {
       "editTitle": "تعديل المورد",
-      "newTitle": "مورد جديد"
+      "newTitle": "مورد جديد",
+      "addTitle": "إضافة مورد جديد",
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "address": "العنوان",
+      "category": "الفئة",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "update": "تحديث",
+      "categoryPlaceholder": "مثال: إلكترونيات، أثاث..."
     },
     "form": {
       "name": "اسم المورد *",
@@ -181,6 +289,11 @@
       "cancel": "إلغاء",
       "update": "تحديث",
       "save": "حفظ"
+    },
+    "logs": {
+      "supplierCreated": "تم إنشاء المورد: {{name}}",
+      "supplierUpdated": "تم تحديث المورد: {{name}}",
+      "supplierDeleted": "تم حذف المورد: {{name}}"
     }
   },
   "auth": {
@@ -206,11 +319,15 @@
     "heroTitle": "قم بإدارة مخزونك وديونك بأناقة.",
     "heroSubtitle": "حل حديث وسريع وذكي للتجار التونسيين. تتبع كل دينار بدقة.",
     "secure": "آمن",
-    "aiAnalysis": "تحليلات ذكية"
+    "aiAnalysis": "تحليلات ذكية",
+    "emailPlaceholder": "اسم@شركة.dz",
+    "connectionIssue": "مشكلة اتصال مستمرة؟",
+    "clearCache": "مسح ذاكرة التخزين المؤقت وإعادة التحميل"
   },
   "users": {
     "title": "المستخدمون والنشاط",
     "subtitle": "إدارة الوصول ومراقبة إجراءات النظام.",
+    "addUser": "إضافة مستخدم",
     "searchPlaceholder": "البحث عن مستخدم...",
     "restrictedAccess": "وصول مقيد",
     "restrictedMessage": "يمكن للمسؤولين فقط الوصول إلى إدارة المستخدمين وسجل النشاط.",
@@ -221,7 +338,8 @@
     },
     "roles": {
       "admin": "مسؤول",
-      "warehouseman": "أمين مخزن"
+      "warehouseman": "أمين مخزن",
+      "manager": "مسير"
     },
     "activity": {
       "title": "سجل النشاط",
@@ -235,7 +353,18 @@
       "cancel": "إلغاء",
       "update": "تحديث"
     },
-    "addUser": "إضافة مستخدم"
+    "notifications": {
+      "accountUpdated": "تحديث حسابك",
+      "accountUpdatedMsg": "تم تحديث حسابك من قبل المسؤول. الدور الجديد: {{role}}. {{status}}",
+      "accountPaused": "حسابك الآن في وضع التوقف.",
+      "accountActive": "حسابك نشط.",
+      "welcome": "أهلاً بك!",
+      "welcomeMsg": "تم إنشاء حسابك بنجاح من قبل المسؤول. دورك هو: {{role}}."
+    },
+    "logs": {
+      "userUpdated": "تم تحديث المستخدم {{name}} (الدور: {{role}}, التوقف: {{paused}})",
+      "userCreated": "تم إنشاء المستخدم {{name}} بدور {{role}}"
+    }
   },
   "profile": {
     "title": "ملفي الشخصي",
@@ -278,7 +407,9 @@
     "table": {
       "product": "المنتج",
       "receivedQuantity": "الكمية المستلمة",
-      "batchExpiry": "الدفعة / الصلاحية"
+      "batchExpiry": "الدفعة / الصلاحية",
+      "batch": "الدفعة",
+      "expiry": "الصلاحية"
     },
     "modal": {
       "title": "استلام بضائع جديد",
@@ -286,8 +417,11 @@
       "type": "نوع الإدخال *",
       "purchaseOrder": "طلب الشراء *",
       "reference": "المرجع / المصدر",
+      "referencePlaceholder": "مثال: زبون س، جرد...",
+      "batchPlaceholder": "رقم الدفعة",
       "date": "تاريخ الاستلام",
       "itemsTitle": "الأصناف المراد استلامها",
+      "searchProduct": "البحث وإضافة منتج...",
       "addItem": "إضافة صنف",
       "product": "المنتج",
       "quantity": "الكمية المستلمة",
@@ -303,6 +437,9 @@
     "types": {
       "return_from_client": "إرجاع من عميل",
       "adjustment_plus": "تعديل إيجابي"
+    },
+    "logs": {
+      "entry": "دخول مخزن: {{number}} ({{type}})"
     }
   },
   "stockExits": {
@@ -311,6 +448,7 @@
     "newExit": "إخراج جديد",
     "searchPlaceholder": "البحث عن مخرج...",
     "performedBy": "تم من قبل: {{name}}",
+    "processedBy": "عولج من طرف: {{name}}",
     "table": {
       "product": "المنتج",
       "quantity": "الكمية الخارجة",
@@ -327,12 +465,14 @@
       "projectName": "اسم المشروع",
       "serviceReason": "المصلحة / السبب",
       "itemsTitle": "الأصناف المراد إخراجها",
+      "searchProduct": "البحث وإضافة منتج...",
       "addItem": "إضافة صنف",
       "product": "المنتج",
       "quantity": "الكمية",
       "unitPrice": "سعر البيع",
       "total": "الإجمالي",
       "notes": "ملاحظات",
+      "notesPlaceholder": "إضافة ملاحظات اختيارية...",
       "cancel": "إلغاء",
       "confirm": "تأكيد الإخراج",
       "selectProduct": "اختر منتجاً",
@@ -345,43 +485,96 @@
       "project_delivery": "تسليم مشروع",
       "return_to_supplier": "إرجاع للمورد",
       "adjustment_minus": "تعديل سلبي"
+    },
+    "notifications": {
+      "lowStockTitle": "تنبيه مخزون منخفض",
+      "lowStockMsg": "المنتج \"{{name}}\" وصل إلى مستوى مخزون منخفض ({{quantity}} متبقي)."
+    },
+    "logs": {
+      "exit": "خروج مخزن: {{number}} ({{type}})",
+      "initialPayment": "دفع أولي للبيع {{number}}"
+    },
+    "errors": {
+      "productNotFound": "المنتج غير موجود: {{id}}",
+      "insufficientStock": "مخزون غير كافي لـ {{name}}. المتوفر: {{current}}, المطلوب: {{requested}}",
+      "insufficientVariantStock": "مخزون غير كافي للمتغير {{variant}} من {{product}}. المتوفر: {{quantity}}"
     }
   },
   "expenses": {
     "title": "المصاريف الخارجية",
     "subtitle": "إدارة وتتبع المصاريف التشغيلية للشركة.",
+    "addExpense": "إضافة مصاريف",
     "newExpense": "مصروف جديد",
     "exportCSV": "تصدير تقرير",
     "searchPlaceholder": "البحث حسب الوصف أو الفئة...",
+    "noExpenses": "لا توجد مصاريف مسجلة.",
     "recordedBy": "سجل من قبل: {{name}}",
     "table": {
       "description": "الوصف",
       "category": "الفئة",
       "amount": "المبلغ",
-      "date": "التاريخ"
+      "date": "التاريخ",
+      "actions": "الإجراءات"
     },
     "modal": {
       "newTitle": "تسجيل مصروف",
+      "addTitle": "إضافة مصاريف جديدة",
       "editTitle": "تعديل المصروف",
-      "amount": "المبلغ (د.ت) *",
+      "amount": "المبلغ (د.ج) *",
       "description": "الوصف التوضيحي *",
       "category": "الفئة",
       "date": "تاريخ المصروف",
       "cancel": "إلغاء",
       "save": "حفظ",
+      "update": "تحديث",
       "confirm": "تأكيد التسجيل"
     },
-    "deleteConfirm": "هل تريد حذف هذا المصروف بقيمة {{amount}} د.ت؟",
-    "noExpenses": "لا توجد مصاريف مسجلة."
+    "categories": {
+      "rent": "الإيجار",
+      "utilities": "المرافق",
+      "salaries": "الرواتب",
+      "supplies": "المستلزمات",
+      "marketing": "التسويق",
+      "other": "أخرى"
+    },
+    "deleteConfirm": "هل تريد حذف هذا المصروف بقيمة {{amount}} د.ج؟",
+    "logs": {
+      "expenseCreated": "تم إنشاء مصاريف: {{description}} ({{amount}})",
+      "expenseUpdated": "تم تحديث مصاريف: {{description}} ({{amount}})",
+      "expenseDeleted": "تم حذف مصاريف: {{description}}"
+    }
   },
   "services": {
     "title": "الخدمات",
     "subtitle": "إدارة الخدمات المقدمة والمفوترة.",
+    "addService": "إضافة خدمة",
     "newService": "خدمة جديدة",
     "noServices": "لا توجد خدمات مسجلة.",
+    "deleteConfirm": "هل أنت متأكد من حذف هذه الخدمة؟",
+    "table": {
+      "date": "التاريخ",
+      "client": "الزبون",
+      "service": "الخدمة",
+      "price": "السعر",
+      "actions": "الإجراءات"
+    },
     "modal": {
       "newTitle": "تسجيل خدمة",
-      "editTitle": "تعديل الخدمة"
+      "addTitle": "إضافة خدمة جديدة",
+      "editTitle": "تعديل الخدمة",
+      "client": "الزبون",
+      "serviceName": "اسم الخدمة",
+      "price": "السعر",
+      "date": "التاريخ",
+      "notes": "ملاحظات",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "update": "تحديث"
+    },
+    "logs": {
+      "serviceCreated": "تم إنشاء خدمة: {{name}} للزبون {{client}}",
+      "serviceUpdated": "تم تحديث خدمة: {{name}} للزبون {{client}}",
+      "serviceDeleted": "تم حذف خدمة: {{name}}"
     }
   },
   "purchaseOrders": {
@@ -429,6 +622,45 @@
       "defaultMessage": "حدث خطأ غير متوقع.",
       "permissionDenied": "ليس لديك الأذونات اللازمة لإجراء هذا العمل أو الوصول إلى هذه البيانات.",
       "reload": "إعادة تحميل التطبيق"
+    },
+    "reclamations": {
+      "title": "الشكاوى",
+      "subtitle": "إدارة ومتابعة الشكاوى والطلبات",
+      "newReclamation": "شكوى جديدة",
+      "searchPlaceholder": "البحث في الشكاوى...",
+      "noReclamations": "لا توجد شكاوى حالياً",
+      "deleteConfirm": "هل أنت متأكد من حذف هذه الشكوى؟",
+      "submittedBy": "بواسطة: {{name}}",
+      "table": {
+        "date": "التاريخ",
+        "title": "العنوان",
+        "priority": "الأولوية",
+        "status": "الحالة"
+      },
+      "priority": {
+        "low": "منخفضة",
+        "medium": "متوسطة",
+        "high": "عالية"
+      },
+      "status": {
+        "pending": "قيد الانتظار",
+        "in_progress": "قيد المعالجة",
+        "resolved": "تم الحل",
+        "rejected": "مرفوضة"
+      },
+      "modal": {
+        "newTitle": "تقديم شكوى جديدة",
+        "editTitle": "تعديل الشكوى",
+        "viewTitle": "تفاصيل الشكوى",
+        "title": "العنوان",
+        "description": "الوصف",
+        "priority": "الأولوية",
+        "status": "الحالة",
+        "resolutionNotes": "ملاحظات الحل",
+        "cancel": "إلغاء",
+        "save": "حفظ",
+        "update": "تحديث"
+      }
     }
   }
 }

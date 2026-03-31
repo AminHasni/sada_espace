@@ -26,7 +26,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { cn } from '../lib/utils';
-import LanguageSwitcher from './LanguageSwitcher';
 import ThemeToggle from './ThemeToggle';
 import NotificationBell from './NotificationBell';
 
@@ -34,7 +33,7 @@ const Layout: React.FC = () => {
   const { profile, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   const handleLogout = async () => {
@@ -62,15 +61,10 @@ const Layout: React.FC = () => {
   const currentItem = navItems.find(item => item.to === location.pathname);
   const currentPageLabel = currentItem ? t(currentItem.labelKey) : t('common.page');
 
-  const isRTL = i18n.language === 'ar';
-
   return (
-    <div className={cn("min-h-screen bg-background flex flex-col lg:flex-row", isRTL && "font-sans")}>
+    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
       {/* Sidebar - Desktop */}
-      <aside className={cn(
-        "hidden lg:flex flex-col w-72 bg-white dark:bg-slate-900 sticky top-0 h-screen z-40",
-        isRTL ? "border-l border-slate-200 dark:border-slate-800" : "border-r border-slate-200 dark:border-slate-800"
-      )}>
+      <aside className="hidden lg:flex flex-col w-72 bg-white dark:bg-slate-900 sticky top-0 h-screen z-40 border-r border-slate-200 dark:border-slate-800">
         <div className="p-8 flex-1 overflow-y-auto">
           <div className="flex items-center gap-3 mb-10">
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
@@ -78,7 +72,6 @@ const Layout: React.FC = () => {
             </div>
             <div>
               <h1 className="font-display font-bold text-lg leading-none text-slate-900 dark:text-white">Espace Sadaa</h1>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold">فضاء صدى</span>
             </div>
           </div>
 
@@ -100,10 +93,7 @@ const Layout: React.FC = () => {
                   <item.icon size={18} />
                   <span>{t(item.labelKey)}</span>
                 </div>
-                <ChevronRight size={14} className={cn(
-                  "opacity-0 group-hover:opacity-100 transition-opacity",
-                  isRTL && "rotate-180"
-                )} />
+                <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
               </NavLink>
             ))}
           </nav>
@@ -142,10 +132,9 @@ const Layout: React.FC = () => {
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <Sparkles className="text-white w-4 h-4" />
           </div>
-          <span className="font-display font-bold text-base text-slate-900 dark:text-white">Espace Sadaa - فضاء صدى</span>
+          <span className="font-display font-bold text-base text-slate-900 dark:text-white">Espace Sadaa</span>
         </div>
         <div className="flex items-center gap-2">
-          <LanguageSwitcher />
           <ThemeToggle />
           <NotificationBell />
           <button 
@@ -160,10 +149,7 @@ const Layout: React.FC = () => {
       {/* Mobile Menu Overlay */}
       {isMenuOpen && (
         <div className="lg:hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 pt-16">
-          <div className={cn(
-            "bg-white dark:bg-slate-900 h-full p-6 animate-in duration-300",
-            isRTL ? "slide-in-from-left" : "slide-in-from-right"
-          )}>
+          <div className="bg-white dark:bg-slate-900 h-full p-6 animate-in duration-300 slide-in-from-right">
             <nav className="space-y-2">
               {filteredNavItems.map((item) => (
                 <NavLink
@@ -218,12 +204,11 @@ const Layout: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            <LanguageSwitcher />
             <ThemeToggle />
             <NotificationBell />
             
             <NavLink to="/profile" className="flex items-center gap-3 group">
-              <div className={cn("text-right", isRTL && "text-left")}>
+              <div className="text-right">
                 <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{profile?.displayName}</p>
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider">{profile?.role}</p>
               </div>

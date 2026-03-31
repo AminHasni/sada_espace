@@ -69,6 +69,15 @@
       "newClient": "Nouveau Client",
       "newSupplier": "Nouveau Fournisseur",
       "newExpense": "Nouvelle Dépense"
+    },
+    "report": {
+      "title": "Rapport d'Activité",
+      "summary": "Résumé Financier",
+      "trends": "Tendances d'Activité",
+      "sales": "Détail des Ventes",
+      "expenses": "Détail des Dépenses",
+      "payments": "Détail des Paiements",
+      "footer": "Page {{page}} sur {{total}}"
     }
   },
   "stock": {
@@ -117,7 +126,8 @@
       "addVariant": "Ajouter",
       "cancel": "Annuler",
       "save": "Enregistrer les modifications",
-      "create": "Créer le produit"
+      "create": "Créer le produit",
+      "stockAutoCalculated": "Calculé automatiquement à partir des variantes"
     },
     "units": {
       "unit": "Unité",
@@ -289,6 +299,7 @@
       "reference": "Référence / Source",
       "date": "Date de réception",
       "itemsTitle": "Articles à réceptionner",
+      "searchProduct": "Rechercher et ajouter un produit...",
       "addItem": "Ajouter un article",
       "product": "Produit",
       "quantity": "Quantité Reçue",
@@ -328,6 +339,7 @@
       "projectName": "Nom du projet",
       "serviceReason": "Service / Raison",
       "itemsTitle": "Articles à sortir",
+      "searchProduct": "Rechercher et ajouter un produit...",
       "addItem": "Ajouter un article",
       "product": "Produit",
       "quantity": "Quantité",

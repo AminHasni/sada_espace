@@ -231,19 +231,19 @@ const Dashboard: React.FC = () => {
   const totalQuantity = products.reduce((sum, p) => sum + p.stockQuantity, 0);
 
   const stats = [
-    { label: t('dashboard.stats.totalProducts', 'Total Produits'), value: totalProducts, icon: Package, color: 'bg-primary', iconColor: 'text-primary' },
-    { label: t('dashboard.stats.totalQuantity', 'Quantité Totale'), value: totalQuantity, icon: PackagePlus, color: 'bg-success', iconColor: 'text-success' },
+    { label: t('dashboard.stats.totalProducts'), value: totalProducts, icon: Package, color: 'bg-primary', iconColor: 'text-primary' },
+    { label: t('dashboard.stats.totalQuantity'), value: totalQuantity, icon: PackagePlus, color: 'bg-success', iconColor: 'text-success' },
     { label: t('dashboard.stats.stockValue'), value: `${totalStockValue.toLocaleString()} ${t('common.currency')}`, icon: TrendingUp, color: 'bg-accent', iconColor: 'text-accent' },
     { label: t('dashboard.stats.stockAlerts'), value: lowStockCount, icon: AlertTriangle, color: 'bg-danger', iconColor: 'text-danger' },
   ];
 
   const financialStats = [
-    { label: t('dashboard.financials.totalSales', 'Ventes Totales'), value: filteredData.totalSales, icon: ArrowUpRight, color: 'text-primary', bg: 'bg-primary/10' },
-    { label: t('dashboard.financials.paymentsReceived', 'Paiements Reçus'), value: filteredData.totalPayments, icon: Wallet, color: 'text-success', bg: 'bg-success/10' },
-    { label: t('dashboard.financials.totalServices', 'Services Totaux'), value: filteredData.totalServices, icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    { label: t('dashboard.financials.outstandingCredits', 'Crédits en Cours'), value: filteredData.totalCredits, icon: AlertTriangle, color: 'text-accent', bg: 'bg-accent/10' },
-    { label: t('dashboard.financials.totalExpenses', 'Dépenses Totales'), value: filteredData.totalExpenses, icon: ArrowDownRight, color: 'text-danger', bg: 'bg-danger/10' },
-    { label: t('dashboard.financials.netProfit', 'Recette Nette'), value: filteredData.netProfit, icon: TrendingUp, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+    { label: t('dashboard.financials.totalSales'), value: filteredData.totalSales, icon: ArrowUpRight, color: 'text-primary', bg: 'bg-primary/10' },
+    { label: t('dashboard.financials.paymentsReceived'), value: filteredData.totalPayments, icon: Wallet, color: 'text-success', bg: 'bg-success/10' },
+    { label: t('dashboard.financials.totalServices'), value: filteredData.totalServices, icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+    { label: t('dashboard.financials.outstandingCredits'), value: filteredData.totalCredits, icon: AlertTriangle, color: 'text-accent', bg: 'bg-accent/10' },
+    { label: t('dashboard.financials.totalExpenses'), value: filteredData.totalExpenses, icon: ArrowDownRight, color: 'text-danger', bg: 'bg-danger/10' },
+    { label: t('dashboard.financials.netProfit'), value: filteredData.netProfit, icon: TrendingUp, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
   ];
 
   if (loading) return (
@@ -332,14 +332,14 @@ const Dashboard: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="text-xl font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Wallet className="text-primary" size={20} />
-              {t('dashboard.financialOverview', 'Gestion Financière')}
+              {t('dashboard.financialOverview')}
             </h2>
             
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                 <div className="flex items-center gap-2 px-3 py-1.5 border-r border-slate-100 dark:border-slate-700">
                   <Filter size={14} className="text-slate-400" />
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('common.period', 'Période')}</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('common.period')}</span>
                 </div>
                 <input
                   type="date"
@@ -367,7 +367,7 @@ const Dashboard: React.FC = () => {
                   ) : (
                     <Download size={18} />
                   )}
-                  {isGeneratingReport ? t('common.loading', 'Chargement...') : t('dashboard.generateReport', 'Générer Rapport')}
+                  {isGeneratingReport ? t('common.loading') : t('dashboard.generateReport')}
                 </button>
               )}
             </div>
@@ -399,7 +399,7 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center justify-between mb-8">
               <h3 className="font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <BarChart3 className="text-primary" size={18} />
-                {t('dashboard.revenueTrend', 'Évolution des Recettes')}
+                {t('dashboard.revenueTrend')}
               </h3>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">

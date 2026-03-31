@@ -17,6 +17,7 @@ const Expenses: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
@@ -79,7 +80,7 @@ const Expenses: React.FC = () => {
           ...formData,
           updatedAt: timestamp,
         });
-        await logActivity(profile.uid, profile.displayName, 'expense_update', `${formData.amount} DT - ${formData.description}`);
+        await logActivity(profile.uid, profile.displayName, 'expense_update', t('activity.expenseUpdate', { amount: formData.amount, description: formData.description }));
       } else {
         await addDoc(collection(db, 'expenses'), {
           ...formData,
@@ -87,7 +88,7 @@ const Expenses: React.FC = () => {
           recordedByName: profile.displayName,
           createdAt: timestamp,
         });
-        await logActivity(profile.uid, profile.displayName, 'expense_create', `${formData.amount} DT - ${formData.description}`);
+        await logActivity(profile.uid, profile.displayName, 'expense_create', t('activity.expenseCreate', { amount: formData.amount, description: formData.description }));
       }
 
       setIsModalOpen(false);
@@ -109,7 +110,7 @@ const Expenses: React.FC = () => {
 
     try {
       await deleteDoc(doc(db, 'expenses', expense.id));
-      if (profile) await logActivity(profile.uid, profile.displayName, 'expense_delete', `${expense.amount} DT - ${expense.description}`);
+      if (profile) await logActivity(profile.uid, profile.displayName, 'expense_delete', t('activity.expenseDelete', { amount: expense.amount, description: expense.description }));
     } catch (error: any) {
       handleFirestoreError(error, OperationType.DELETE, 'expenses');
     }
@@ -127,10 +128,14 @@ const Expenses: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const filteredExpenses = expenses.filter(e => 
-    e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (e.category && e.category.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const categories = Array.from(new Set(expenses.map(e => e.category).filter(Boolean)));
+
+  const filteredExpenses = expenses.filter(e => {
+    const matchesSearch = e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (e.category && e.category.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = !selectedCategory || e.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -176,9 +181,9 @@ const Expenses: React.FC = () => {
       </div>
 
       {/* Search and Stats */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        <div className="xl:col-span-3 card dark:bg-slate-900 dark:border-slate-800 p-4">
-          <div className="relative">
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        <div className="xl:col-span-3 card dark:bg-slate-900 dark:border-slate-800 p-4 flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
@@ -188,8 +193,18 @@ const Expenses: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <select
+            className="input-field dark:bg-slate-800 dark:border-slate-700 dark:text-white sm:w-48"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+          >
+            <option value="">{t('common.allCategories')}</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </div>
-        <div className="card dark:bg-slate-900 dark:border-slate-800 p-4 flex items-center justify-between bg-primary/5 border-primary/10">
+        <div className="xl:col-span-2 card dark:bg-slate-900 dark:border-slate-800 p-4 flex items-center justify-between bg-primary/5 border-primary/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
               <Wallet size={20} />
@@ -297,14 +312,15 @@ const Expenses: React.FC = () => {
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('expenses.modal.amount')}</label>
                   <input
                     required
-                    type="number"
-                    min="0"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     className="input-field dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                     value={formData.amount === '' ? '' : (isNaN(formData.amount as any) ? '' : formData.amount)}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData({...formData, amount: val === '' ? '' as any : parseFloat(val)});
+                      const val = e.target.value.replace(',', '.');
+                      if (val === '' || !isNaN(Number(val)) || val === '.') {
+                        setFormData({...formData, amount: val === '' ? '' as any : parseFloat(val)});
+                      }
                     }}
                   />
                 </div>
@@ -329,7 +345,7 @@ const Expenses: React.FC = () => {
                       className="input-field dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                       value={formData.category}
                       onChange={(e) => setFormData({...formData, category: e.target.value})}
-                      placeholder="Ex: Loyer, Électricité..."
+                      placeholder={t('expenses.modal.categoryPlaceholder')}
                     />
                   </div>
                   <div className="space-y-1.5">

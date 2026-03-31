@@ -94,7 +94,7 @@ const LoginPage: React.FC = () => {
               <input
                 required
                 type="email"
-                placeholder="nom@entreprise.dz"
+                placeholder={t('auth.emailPlaceholder')}
                 className="input-field"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -151,7 +151,7 @@ const LoginPage: React.FC = () => {
 
           {authError && authError.includes('network-request-failed') && (
             <div className="mt-6 text-center">
-              <p className="text-xs text-slate-500 mb-2">Problème de connexion persistant ?</p>
+              <p className="text-xs text-slate-500 mb-2">{t('auth.connectionIssue')}</p>
               <button 
                 onClick={() => {
                   logout();
@@ -159,7 +159,7 @@ const LoginPage: React.FC = () => {
                 }}
                 className="text-sm font-medium text-danger hover:underline"
               >
-                Vider le cache de session et recharger
+                {t('auth.clearCache')}
               </button>
             </div>
           )}

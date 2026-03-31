@@ -3,10 +3,21 @@ import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { fr, arDZ } from 'date-fns/locale';
 import { Product, Client, StockExit, Payment, Expense, ServiceRecord } from '../types';
-import * as arabicReshaper from 'arabic-reshaper';
+import arabicReshaper from 'arabic-reshaper';
 import bidiFactory from 'bidi-js';
 
-const bidi = bidiFactory();
+// Initialize bidi with a safer check for the factory function
+const getBidiInstance = () => {
+  try {
+    const factory = (bidiFactory as any).default || bidiFactory;
+    return typeof factory === 'function' ? factory() : factory;
+  } catch (e) {
+    console.error('Failed to initialize bidi-js:', e);
+    return null;
+  }
+};
+
+const bidi = getBidiInstance();
 
 // Helper to detect Arabic characters
 const hasArabic = (text: string) => /[\u0600-\u06FF]/.test(text);
@@ -14,10 +25,11 @@ const hasArabic = (text: string) => /[\u0600-\u06FF]/.test(text);
 // Use more reliable font sources with CORS support
 const AMIRI_FONT_URLS = [
   'https://cdn.jsdelivr.net/gh/googlefonts/amiri@main/fonts/ttf/Amiri-Regular.ttf',
+  'https://cdn.jsdelivr.net/npm/amiri-font@0.0.3/Amiri-Regular.ttf',
+  'https://unpkg.com/@fontsource/amiri/files/amiri-arabic-400-normal.ttf',
   'https://cdn.jsdelivr.net/gh/alif-type/amiri@0.113/fonts/ttf/Amiri-Regular.ttf',
   'https://fonts.gstatic.com/s/amiri/v28/J7afp9id8znt9L06Z97S.ttf',
-  'https://cdn.jsdelivr.net/npm/amiri-font@0.0.3/Amiri-Regular.ttf',
-  'https://unpkg.com/@fontsource/amiri/files/amiri-arabic-400-normal.ttf'
+  'https://raw.githubusercontent.com/googlefonts/amiri/main/fonts/ttf/Amiri-Regular.ttf'
 ];
 
 let cachedFontBase64: string | null = null;
@@ -26,17 +38,11 @@ const fetchFontAsBase64 = async (urls: string[]): Promise<string> => {
   if (cachedFontBase64) return cachedFontBase64;
 
   const fetchOne = async (url: string): Promise<string> => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout per source
-    
     try {
       const response = await fetch(url, { 
-        signal: controller.signal,
-        credentials: 'omit',
-        mode: 'cors',
-        cache: 'no-cache' // Force fresh fetch to avoid stale cache issues
+        cache: 'force-cache',
+        mode: 'cors'
       });
-      clearTimeout(timeoutId);
       
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
@@ -45,62 +51,63 @@ const fetchFontAsBase64 = async (urls: string[]): Promise<string> => {
         const reader = new FileReader();
         reader.onloadend = () => {
           const result = reader.result as string;
-          if (!result || !result.includes('base64,')) {
+          if (result && result.includes('base64,')) {
+            resolve(result.split(',')[1]);
+          } else {
             reject(new Error('Invalid base64 result'));
-            return;
           }
-          const base64 = result.split(',')[1];
-          resolve(base64);
         };
         reader.onerror = () => reject(new Error('FileReader error'));
         reader.readAsDataURL(blob);
       });
     } catch (e) {
-      clearTimeout(timeoutId);
       throw e;
     }
   };
 
-  // Fallback for Promise.any if not available
-  const anyPromise = async <T>(promises: Promise<T>[]): Promise<T> => {
-    if (typeof Promise.any === 'function') {
-      return Promise.any(promises);
+  // Try sources sequentially to avoid overwhelming or triggering rate limits
+  const errors: string[] = [];
+  for (const url of urls) {
+    try {
+      console.log(`Attempting to load Arabic font from: ${url}`);
+      const base64 = await fetchOne(url);
+      console.log(`Successfully loaded Arabic font from: ${url}`);
+      cachedFontBase64 = base64;
+      return base64;
+    } catch (e: any) {
+      console.warn(`Failed to load Arabic font from ${url}:`, e.message);
+      errors.push(`${url}: ${e.message}`);
+      continue;
     }
-    
-    // Simple fallback: return the first one that succeeds
-    return new Promise((resolve, reject) => {
-      let rejectedCount = 0;
-      const errors: any[] = [];
-      promises.forEach(p => {
-        p.then(resolve).catch(err => {
-          errors.push(err);
-          rejectedCount++;
-          if (rejectedCount === promises.length) {
-            reject(new Error('All promises failed: ' + errors.map(e => e.message).join(', ')));
-          }
-        });
-      });
-    });
-  };
-
-  try {
-    // Try all sources in parallel, return the first one that succeeds
-    cachedFontBase64 = await anyPromise(urls.map(url => fetchOne(url)));
-    return cachedFontBase64!;
-  } catch (e) {
-    console.error('All font sources failed to load:', e);
-    throw new Error('Failed to load Arabic font from all sources. Please check your internet connection.');
   }
+
+  const errorMessage = 'Failed to load Arabic font from all sources: ' + errors.join('; ');
+  console.error(errorMessage);
+  throw new Error(errorMessage);
 };
 
 const processArabicText = (text: string) => {
   if (!text) return '';
   try {
+    // Check if it's a mix of Arabic and other characters
+    if (!hasArabic(text)) return text;
+
     // Reshape Arabic characters
-    const reshaped = (arabicReshaper as any).reshape(text);
+    // Using a safe access for the reshape function
+    const reshaper = (arabicReshaper as any).default || arabicReshaper;
+    const reshaped = typeof reshaper.reshape === 'function' 
+      ? reshaper.reshape(text) 
+      : (typeof reshaper === 'function' ? reshaper(text) : text);
+    
     // Apply Bidi algorithm to handle RTL correctly
-    const bidiData = bidi.getVisual(reshaped);
-    return bidiData;
+    if (bidi) {
+      if (typeof bidi.getVisual === 'function') {
+        return bidi.getVisual(reshaped);
+      } else if (typeof (bidi as any).processText === 'function') {
+        return (bidi as any).processText(reshaped).visual;
+      }
+    }
+    return reshaped;
   } catch (e) {
     console.error('Error processing Arabic text:', e);
     return text;
@@ -193,8 +200,43 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
     doc.text(summaryTitle, 14, 50);
   }
 
+  // Key Statistics Grid (Visual Cards)
+  const statsY = 55;
+  const cardWidth = 35;
+  const cardHeight = 20;
+  const cardGap = 5;
+  
+  const keyStats = [
+    { label: t('dashboard.financials.totalSales', 'Ventes'), value: `${data.totalSales.toLocaleString()} DT`, color: [240, 247, 255], textColor: [37, 99, 235] },
+    { label: t('dashboard.financials.paymentsReceived', 'Paiements'), value: `${data.totalPayments.toLocaleString()} DT`, color: [240, 253, 244], textColor: [22, 163, 74] },
+    { label: t('dashboard.financials.totalExpenses', 'Dépenses'), value: `${data.totalExpenses.toLocaleString()} DT`, color: [254, 242, 242], textColor: [220, 38, 38] },
+    { label: t('dashboard.financials.netProfit', 'Recette'), value: `${data.netProfit.toLocaleString()} DT`, color: [255, 251, 235], textColor: [217, 119, 6] },
+    { label: t('dashboard.financials.outstandingCredits', 'Crédits'), value: `${data.totalCredits.toLocaleString()} DT`, color: [255, 247, 237], textColor: [234, 88, 12] }
+  ];
+
+  keyStats.forEach((stat, i) => {
+    const x = 14 + i * (cardWidth + cardGap);
+    
+    // Draw card background
+    doc.setFillColor(stat.color[0], stat.color[1], stat.color[2]);
+    doc.roundedRect(x, statsY, cardWidth, cardHeight, 2, 2, 'F');
+    
+    // Label
+    doc.setFontSize(7);
+    doc.setTextColor(100);
+    const label = formatText(stat.label);
+    doc.setFont(getFont(label));
+    doc.text(label, x + cardWidth / 2, statsY + 7, { align: 'center' });
+    
+    // Value
+    doc.setFontSize(9);
+    doc.setTextColor(stat.textColor[0], stat.textColor[1], stat.textColor[2]);
+    doc.setFont(getFont(stat.value), 'bold');
+    doc.text(stat.value, x + cardWidth / 2, statsY + 14, { align: 'center' });
+  });
+
   autoTable(doc, {
-    startY: 55,
+    startY: statsY + cardHeight + 10,
     head: [[
       t('dashboard.financials.totalSales', 'Ventes Totales'),
       t('dashboard.financials.paymentsReceived', 'Paiements Reçus'),
@@ -213,19 +255,89 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
     headStyles: { 
       fillColor: [63, 131, 248],
       font: fontLoaded ? 'Amiri' : 'helvetica',
-      halign: isArabicUI ? 'right' : 'left'
+      halign: 'center'
     },
     styles: {
       font: fontLoaded ? 'Amiri' : 'helvetica',
-      halign: isArabicUI ? 'right' : 'left'
+      halign: 'center',
+      fontSize: 10
     }
   });
+
+  // Trends Visualization (Simple Bar Chart)
+  const chartY = (doc as any).lastAutoTable.finalY + 15;
+  const chartTitle = formatText(t('dashboard.report.trends', 'Tendances d\'Activité'));
+  doc.setFontSize(14);
+  doc.setFont(getFont(chartTitle));
+  if (isArabicUI) {
+    doc.text(chartTitle, 196, chartY, { align: 'right' });
+  } else {
+    doc.text(chartTitle, 14, chartY);
+  }
+
+  const chartData = [
+    { label: t('dashboard.financials.totalSales', 'Ventes'), value: data.totalSales, color: [63, 131, 248] },
+    { label: t('dashboard.financials.paymentsReceived', 'Paiements'), value: data.totalPayments, color: [16, 185, 129] },
+    { label: t('dashboard.financials.totalExpenses', 'Dépenses'), value: data.totalExpenses, color: [239, 68, 68] },
+    { label: t('dashboard.financials.netProfit', 'Recette'), value: data.netProfit, color: [245, 158, 11] }
+  ];
+
+  const maxVal = Math.max(...chartData.map(d => d.value), 1);
+  const chartHeight = 40;
+  const chartWidth = 160;
+  const barWidth = 25;
+  const gap = 15;
+  const startX = 25;
+  const startY = chartY + 10;
+
+  // Draw axis
+  doc.setDrawColor(200);
+  doc.line(startX, startY, startX, startY + chartHeight); // Y axis
+  doc.line(startX, startY + chartHeight, startX + chartWidth, startY + chartHeight); // X axis
+
+  chartData.forEach((item, i) => {
+    const barHeight = (item.value / maxVal) * chartHeight;
+    const x = startX + gap + i * (barWidth + gap);
+    const y = startY + chartHeight - barHeight;
+
+    // Draw bar
+    doc.setFillColor(item.color[0], item.color[1], item.color[2]);
+    doc.rect(x, y, barWidth, barHeight, 'F');
+
+    // Label
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    const label = formatText(item.label);
+    doc.setFont(getFont(label));
+    doc.text(label, x + barWidth / 2, startY + chartHeight + 5, { align: 'center' });
+    
+    // Value
+    doc.setFontSize(7);
+    doc.text(`${item.value.toLocaleString()} DT`, x + barWidth / 2, y - 2, { align: 'center' });
+  });
+
+  // Footer function
+  const addFooter = () => {
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      const footerText = formatText(t('dashboard.report.footer', 'Page {page} sur {total}', { page: i, total: pageCount }));
+      doc.setFont(getFont(footerText));
+      doc.text(footerText, 105, 285, { align: 'center' });
+      
+      // Decorative line
+      doc.setDrawColor(240);
+      doc.line(14, 280, 196, 280);
+    }
+  };
 
   // Sales Table
   const sales = data.stockExits.filter(e => e.type === 'sale');
   if (sales.length > 0) {
     const salesTitle = formatText(t('dashboard.report.sales', 'Détail des Ventes'));
-    const salesY = (doc as any).lastAutoTable.finalY + 15;
+    const salesY = startY + chartHeight + 20;
     if (isArabicUI) {
       doc.text(salesTitle, 196, salesY, { align: 'right' });
     } else {
@@ -264,12 +376,14 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
       }),
       theme: 'striped',
       headStyles: { 
+        fillColor: [63, 131, 248],
         font: fontLoaded ? 'Amiri' : 'helvetica',
         halign: isArabicUI ? 'right' : 'left'
       },
       styles: {
         font: fontLoaded ? 'Amiri' : 'helvetica',
-        halign: isArabicUI ? 'right' : 'left'
+        halign: isArabicUI ? 'right' : 'left',
+        fontSize: 9
       }
     });
   }
@@ -300,12 +414,14 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
       ].map(formatText)),
       theme: 'striped',
       headStyles: { 
+        fillColor: [245, 158, 11],
         font: fontLoaded ? 'Amiri' : 'helvetica',
         halign: isArabicUI ? 'right' : 'left'
       },
       styles: {
         font: fontLoaded ? 'Amiri' : 'helvetica',
-        halign: isArabicUI ? 'right' : 'left'
+        halign: isArabicUI ? 'right' : 'left',
+        fontSize: 9
       }
     });
   }
@@ -338,12 +454,14 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
       ].map(formatText)),
       theme: 'striped',
       headStyles: { 
+        fillColor: [239, 68, 68],
         font: fontLoaded ? 'Amiri' : 'helvetica',
         halign: isArabicUI ? 'right' : 'left'
       },
       styles: {
         font: fontLoaded ? 'Amiri' : 'helvetica',
-        halign: isArabicUI ? 'right' : 'left'
+        halign: isArabicUI ? 'right' : 'left',
+        fontSize: 9
       }
     });
   }
@@ -378,15 +496,20 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
       ].map(formatText)),
       theme: 'striped',
       headStyles: { 
+        fillColor: [16, 185, 129],
         font: fontLoaded ? 'Amiri' : 'helvetica',
         halign: isArabicUI ? 'right' : 'left'
       },
       styles: {
         font: fontLoaded ? 'Amiri' : 'helvetica',
-        halign: isArabicUI ? 'right' : 'left'
+        halign: isArabicUI ? 'right' : 'left',
+        fontSize: 9
       }
     });
   }
+
+  // Add footer to all pages
+  addFooter();
 
   // Save the PDF
   doc.save(`rapport_boutique_${data.dateRange.start}_au_${data.dateRange.end}.pdf`);

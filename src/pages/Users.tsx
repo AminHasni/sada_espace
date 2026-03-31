@@ -81,12 +81,12 @@ const Users: React.FC = () => {
       // Send notification to the updated user
       await notificationService.sendNotification({
         userId: editingUser.uid,
-        title: 'Mise à jour de votre compte',
-        message: `Votre compte a été mis à jour par l'administrateur. Nouveau rôle : ${selectedRole}. ${isPaused ? 'Votre compte est maintenant en pause.' : 'Votre compte est actif.'}`,
+        title: t('notifications.userUpdate.title'),
+        message: t('notifications.userUpdate.message', { role: selectedRole, status: isPaused ? t('common.paused') : t('common.active') }),
         type: isPaused ? 'warning' : 'info'
       });
 
-      if (currentUserProfile) await logActivity(currentUserProfile.uid, currentUserProfile.displayName, 'user_update', `Utilisateur ${editingUser.displayName} mis à jour (Rôle: ${selectedRole}, Pause: ${isPaused})`);
+      if (currentUserProfile) await logActivity(currentUserProfile.uid, currentUserProfile.displayName, 'user_update', t('activity.userUpdate', { name: editingUser.displayName, role: selectedRole, status: isPaused ? t('common.paused') : t('common.active') }));
       setIsModalOpen(false);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `users/${editingUser.uid}`);
@@ -102,15 +102,15 @@ const Users: React.FC = () => {
       if (newUserUid) {
         await notificationService.sendNotification({
           userId: newUserUid,
-          title: 'Bienvenue !',
-          message: `Votre compte a été créé avec succès par l'administrateur. Votre rôle est : ${newUser.role}.`,
+          title: t('notifications.welcome.title'),
+          message: t('notifications.welcome.message', { role: newUser.role }),
           type: 'info'
         });
       }
       
       setIsAddUserModalOpen(false);
       setNewUser({ name: '', email: '', password: '', role: 'warehouseman' });
-      if (currentUserProfile) await logActivity(currentUserProfile.uid, currentUserProfile.displayName, 'user_create', `Utilisateur ${newUser.name} créé avec le rôle ${newUser.role}`);
+      if (currentUserProfile) await logActivity(currentUserProfile.uid, currentUserProfile.displayName, 'user_create', t('activity.userCreate', { name: newUser.name, role: newUser.role }));
     } catch (error) {
       console.error(error);
     }
@@ -306,7 +306,7 @@ const Users: React.FC = () => {
 
               {selectedRole === 'warehouseman' && (
                 <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Pause</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('common.paused')}</label>
                   <button
                     type="button"
                     onClick={() => setIsPaused(!isPaused)}

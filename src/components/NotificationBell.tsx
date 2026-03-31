@@ -114,10 +114,10 @@ const NotificationBell: React.FC = () => {
           >
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-slate-900 dark:text-white">Notifications</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white">{t('notifications.title')}</h3>
                 {unreadCount > 0 && (
                   <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase tracking-wider">
-                    {unreadCount} nouvelles
+                    {unreadCount} {t('notifications.new')}
                   </span>
                 )}
               </div>
@@ -127,7 +127,7 @@ const NotificationBell: React.FC = () => {
                   className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
                 >
                   <Check size={14} />
-                  Tout marquer comme lu
+                  {t('notifications.markAllRead')}
                 </button>
               )}
             </div>
@@ -176,7 +176,7 @@ const NotificationBell: React.FC = () => {
                             {notification.link && (
                               <span className="text-[10px] font-bold text-primary flex items-center gap-1 uppercase tracking-wider">
                                 <ExternalLink size={10} />
-                                Voir les détails
+                                {t('notifications.viewDetails')}
                               </span>
                             )}
                             <div className="flex items-center gap-2 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
@@ -184,7 +184,7 @@ const NotificationBell: React.FC = () => {
                                 <button
                                   onClick={(e) => handleMarkAsRead(notification.id, e)}
                                   className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
-                                  title="Marquer comme lu"
+                                  title={t('notifications.markAsRead')}
                                 >
                                   <Check size={14} />
                                 </button>
@@ -192,7 +192,7 @@ const NotificationBell: React.FC = () => {
                               <button
                                 onClick={(e) => handleDelete(notification.id, e)}
                                 className="p-1.5 text-slate-400 hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
-                                title="Supprimer"
+                                title={t('common.delete')}
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -208,8 +208,8 @@ const NotificationBell: React.FC = () => {
                   <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300 dark:text-slate-600">
                     <BellOff size={32} />
                   </div>
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Aucune notification</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Vous êtes à jour !</p>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{t('notifications.empty')}</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('notifications.upToDate')}</p>
                 </div>
               )}
             </div>
@@ -220,7 +220,7 @@ const NotificationBell: React.FC = () => {
                   onClick={() => setIsOpen(false)}
                   className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest hover:text-slate-600 dark:hover:text-slate-300"
                 >
-                  Fermer
+                  {t('common.close')}
                 </button>
               </div>
             )}

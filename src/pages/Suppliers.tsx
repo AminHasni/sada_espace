@@ -97,13 +97,13 @@ const Suppliers: React.FC = () => {
     try {
       if (editingSupplier) {
         await updateDoc(doc(db, 'suppliers', editingSupplier.id), formData);
-        await logActivity(profile.uid, profile.displayName, 'supplier_update', `Fournisseur modifié: ${formData.name}`);
+        await logActivity(profile.uid, profile.displayName, 'supplier_update', t('activity.supplierUpdate', { name: formData.name }));
       } else {
         await addDoc(collection(db, 'suppliers'), {
           ...formData,
           createdAt: new Date().toISOString()
         });
-        await logActivity(profile.uid, profile.displayName, 'supplier_create', `Nouveau fournisseur: ${formData.name}`);
+        await logActivity(profile.uid, profile.displayName, 'supplier_create', t('activity.supplierCreate', { name: formData.name }));
       }
       setIsModalOpen(false);
     } catch (error) {
@@ -119,7 +119,7 @@ const Suppliers: React.FC = () => {
     if (window.confirm(t('suppliers.deleteConfirm', { name }))) {
       try {
         await deleteDoc(doc(db, 'suppliers', id));
-        await logActivity(profile.uid, profile.displayName, 'supplier_delete', `Fournisseur supprimé: ${name}`);
+        await logActivity(profile.uid, profile.displayName, 'supplier_delete', t('activity.supplierDelete', { name }));
       } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `suppliers/${id}`);
       }

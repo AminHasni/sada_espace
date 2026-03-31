@@ -26,7 +26,8 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
-  Trash2
+  Trash2,
+  ArrowUpRight
 } from 'lucide-react';
 import { logActivity } from '../services/activity';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
@@ -39,6 +40,11 @@ const StockEntries: React.FC = () => {
   const [entries, setEntries] = useState<StockEntry[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [productSearch, setProductSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [listCategoryFilter, setListCategoryFilter] = useState('');
+  const [variantPickerProduct, setVariantPickerProduct] = useState<Product | null>(null);
+  const [variantQuantities, setVariantQuantities] = useState<Record<string, number>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
@@ -82,6 +88,9 @@ const StockEntries: React.FC = () => {
       notes: '',
       items: []
     });
+    setProductSearch('');
+    setSelectedCategory('');
+    setVariantPickerProduct(null);
     setIsModalOpen(true);
   };
 
@@ -122,35 +131,71 @@ const StockEntries: React.FC = () => {
       await runTransaction(db, async (transaction) => {
         const entryRef = doc(collection(db, 'stock_entries'));
         
-        // 1. All Reads
-        const productRefs = formData.items.map(item => doc(db, 'products', item.productId));
+        // 1. Group items by product to handle multiple variants of the same product
+        const itemsByProduct = formData.items.reduce((acc, item) => {
+          if (!acc[item.productId]) acc[item.productId] = [];
+          acc[item.productId].push(item);
+          return acc;
+        }, {} as Record<string, StockEntryItem[]>);
+
+        const uniqueProductIds = Object.keys(itemsByProduct);
+        const productRefs = uniqueProductIds.map(id => doc(db, 'products', id));
         const productSnaps = await Promise.all(productRefs.map(ref => transaction.get(ref)));
 
         // 2. All Writes
-        for (let i = 0; i < formData.items.length; i++) {
-          const item = formData.items[i];
+        for (let i = 0; i < uniqueProductIds.length; i++) {
+          const productId = uniqueProductIds[i];
           const productRef = productRefs[i];
           const productSnap = productSnaps[i];
+          const productItems = itemsByProduct[productId];
 
           if (productSnap.exists()) {
-            const currentStock = productSnap.data().stockQuantity || 0;
-            const newStock = currentStock + item.quantity;
-            transaction.update(productRef, { stockQuantity: newStock });
+            const productData = productSnap.data() as Product;
+            const totalQuantityToEntry = productItems.reduce((sum, item) => sum + item.quantity, 0);
+            const currentStock = productData.stockQuantity || 0;
+            const newStock = currentStock + totalQuantityToEntry;
+
+            let updatedVariants = productData.variants ? [...productData.variants] : undefined;
             
-            const historyRef = doc(collection(db, 'stock_history'));
-            transaction.set(historyRef, {
-              productId: item.productId,
-              productName: item.productName,
-              type: 'entry',
-              quantity: item.quantity,
-              previousStock: currentStock,
-              newStock: newStock,
-              documentId: entryRef.id,
-              documentReference: formData.entryNumber,
-              date: new Date().toISOString(),
-              performedBy: profile.uid,
-              performedByName: profile.displayName
+            // Update variant stocks if applicable
+            for (const item of productItems) {
+              if (item.variantId && updatedVariants) {
+                const variantIndex = updatedVariants.findIndex(v => v.id === item.variantId);
+                if (variantIndex !== -1) {
+                  const variant = updatedVariants[variantIndex];
+                  updatedVariants[variantIndex] = {
+                    ...variant,
+                    stockQuantity: variant.stockQuantity + item.quantity
+                  };
+                }
+              }
+            }
+
+            transaction.update(productRef, { 
+              stockQuantity: newStock,
+              variants: updatedVariants,
+              updatedAt: new Date().toISOString()
             });
+            
+            // History records for each variant/item
+            for (const item of productItems) {
+              const historyRef = doc(collection(db, 'stock_history'));
+              transaction.set(historyRef, {
+                productId: item.productId,
+                productName: item.productName,
+                variantId: item.variantId,
+                variantName: item.variantName,
+                type: 'entry',
+                quantity: item.quantity,
+                previousStock: currentStock,
+                newStock: newStock,
+                documentId: entryRef.id,
+                documentReference: formData.entryNumber,
+                date: new Date().toISOString(),
+                performedBy: profile.uid,
+                performedByName: profile.displayName
+              });
+            }
           }
         }
 
@@ -169,7 +214,10 @@ const StockEntries: React.FC = () => {
           userId: profile.uid,
           userName: profile.displayName,
           action: 'stock_entry',
-          details: `Entrée de stock: ${formData.entryNumber} (${formData.type})`,
+          details: t('stockEntries.logs.entry', { 
+            number: formData.entryNumber, 
+            type: t(`stockEntries.types.${formData.type}`) 
+          }),
           timestamp: new Date().toISOString()
         });
       });
@@ -180,10 +228,17 @@ const StockEntries: React.FC = () => {
     }
   };
 
-  const filteredEntries = entries.filter(e => 
-    e.entryNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.supplierName?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEntries = entries.filter(e => {
+    const matchesSearch = e.entryNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.supplierName?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = !listCategoryFilter || e.items.some(item => {
+      const product = products.find(p => p.id === item.productId);
+      return product?.category === listCategoryFilter;
+    });
+
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="space-y-6">
@@ -199,15 +254,29 @@ const StockEntries: React.FC = () => {
         )}
       </div>
 
-      <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-        <Search className="text-slate-400" size={20} />
-        <input 
-          type="text" 
-          placeholder={t('stockEntries.searchPlaceholder')}
-          className="flex-1 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder:text-slate-400"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="flex flex-col md:flex-row items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+        <div className="flex-1 flex items-center gap-4">
+          <Search className="text-slate-400" size={20} />
+          <input 
+            type="text" 
+            placeholder={t('stockEntries.searchPlaceholder')}
+            className="flex-1 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder:text-slate-400"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="w-full md:w-64">
+          <select
+            className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all text-sm"
+            value={listCategoryFilter}
+            onChange={(e) => setListCategoryFilter(e.target.value)}
+          >
+            <option value="">{t('stock.allCategories')}</option>
+            {Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort().map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -229,7 +298,7 @@ const StockEntries: React.FC = () => {
               <div className="flex flex-wrap items-center gap-6 text-sm">
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                   <Truck size={16} className="text-slate-400" />
-                  <span>{entry.supplierName || 'N/A'}</span>
+                  <span>{entry.supplierName || t('common.na')}</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                   <Calendar size={16} className="text-slate-400" />
@@ -263,8 +332,8 @@ const StockEntries: React.FC = () => {
                           <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{item.productName}</td>
                           <td className="px-4 py-3 text-center font-bold text-green-600 dark:text-green-400">+{item.quantity}</td>
                           <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
-                            {item.batchNumber && <span className="block text-xs">Lot: {item.batchNumber}</span>}
-                            {item.expiryDate && <span className="block text-xs">Exp: {format(new Date(item.expiryDate), 'dd/MM/yyyy')}</span>}
+                            {item.batchNumber && <span className="block text-xs">{t('stockEntries.table.batch')}: {item.batchNumber}</span>}
+                            {item.expiryDate && <span className="block text-xs">{t('stockEntries.table.expiry')}: {format(new Date(item.expiryDate), 'dd/MM/yyyy')}</span>}
                             {!item.batchNumber && !item.expiryDate && '-'}
                           </td>
                         </tr>
@@ -313,7 +382,7 @@ const StockEntries: React.FC = () => {
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">{t('stockEntries.modal.reference')}</label>
                   <input 
                     type="text" 
-                    placeholder="ex: Client X, Inventaire..."
+                    placeholder={t('stockEntries.modal.referencePlaceholder')}
                     className="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                     value={formData.reference}
                     onChange={(e) => setFormData({...formData, reference: e.target.value})}
@@ -330,37 +399,184 @@ const StockEntries: React.FC = () => {
                   <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <Package size={20} className="text-primary" /> {t('stockEntries.modal.itemsTitle')}
                   </h3>
-                  <button type="button" onClick={addItem} className="text-primary hover:text-primary/80 font-semibold text-sm flex items-center gap-1">
-                    <Plus size={16} /> {t('stockEntries.modal.addItem')}
-                  </button>
                 </div>
+
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <input
+                      type="text"
+                      placeholder={t('stockExits.modal.searchProduct')}
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all font-medium"
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="md:w-64">
+                    <select
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all font-medium"
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                    >
+                      <option value="">{t('stock.allCategories')}</option>
+                      {Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort().map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                  <div className="relative">
+                    {productSearch && (
+                      <div className="absolute z-20 w-full -mt-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl max-h-64 overflow-y-auto">
+                        {products.filter(p => 
+                          (p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.reference.toLowerCase().includes(productSearch.toLowerCase())) && 
+                          (!selectedCategory || p.category === selectedCategory) &&
+                          !formData.items.find(i => i.productId === p.id)
+                        ).map(p => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            className="w-full text-left px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex justify-between items-center border-b border-slate-100 dark:border-slate-700/50 last:border-0 transition-colors"
+                            onClick={() => {
+                              if (p.variants && p.variants.length > 0) {
+                                setVariantPickerProduct(p);
+                                const initialQs: Record<string, number> = {};
+                                p.variants.forEach(v => initialQs[v.id] = 0);
+                                setVariantQuantities(initialQs);
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  items: [...formData.items, { productId: p.id, productName: p.name, quantity: 1, unitPrice: p.purchasePrice || 0, batchNumber: '', expiryDate: '' }]
+                                });
+                                setProductSearch('');
+                              }
+                            }}
+                          >
+                            <div>
+                              <span className="font-bold text-slate-900 dark:text-white block">{p.name}</span>
+                              <span className="text-xs text-slate-500 dark:text-slate-400">{p.reference}</span>
+                            </div>
+                            <div className="text-right flex items-center gap-3">
+                              <div>
+                                <span className="text-sm font-bold text-primary block">{p.purchasePrice?.toLocaleString()} {t('common.currency')}</span>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">{t('stock.currentStock')}: {p.stockQuantity}</span>
+                              </div>
+                              <div className="p-2 bg-primary/5 rounded-lg text-primary">
+                                <ArrowUpRight size={18} />
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {variantPickerProduct && (
+                      <div className="absolute z-30 inset-x-0 -mt-4 bg-white dark:bg-slate-800 border-2 border-primary/30 rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-top-4 duration-300">
+                        <div className="p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-primary/5">
+                          <div>
+                            <h4 className="font-bold text-slate-900 dark:text-white">{variantPickerProduct.name}</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{t('stock.selectVariants')}</p>
+                          </div>
+                          <button onClick={() => setVariantPickerProduct(null)} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
+                            <X size={18} />
+                          </button>
+                        </div>
+                        <div className="p-5 space-y-4 max-h-80 overflow-y-auto">
+                          {variantPickerProduct.variants?.map(variant => (
+                            <div key={variant.id} className="flex items-center justify-between gap-4 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                              <div className="flex-1">
+                                <span className="font-semibold text-slate-800 dark:text-slate-200 block">{variant.name}</span>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">{t('stock.currentStock')}: <span className="font-bold text-slate-700 dark:text-slate-300">{variant.stockQuantity}</span></span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <input 
+                                  type="number"
+                                  min="0"
+                                  className="w-24 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-bold text-center focus:ring-2 focus:ring-primary/20"
+                                  value={variantQuantities[variant.id] || 0}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    setVariantQuantities({...variantQuantities, [variant.id]: val});
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="p-5 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex gap-3">
+                          <button 
+                            type="button"
+                            onClick={() => setVariantPickerProduct(null)}
+                            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 font-bold text-sm hover:bg-white transition-all"
+                          >
+                            {t('common.cancel')}
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const newItems: StockEntryItem[] = [];
+                              Object.entries(variantQuantities).forEach(([vId, qty]) => {
+                                if (qty > 0) {
+                                  const variant = variantPickerProduct.variants?.find(v => v.id === vId);
+                                  newItems.push({
+                                    productId: variantPickerProduct.id,
+                                    productName: variantPickerProduct.name,
+                                    variantId: vId,
+                                    variantName: variant?.name,
+                                    quantity: qty,
+                                    unitPrice: variantPickerProduct.purchasePrice || 0,
+                                    batchNumber: '',
+                                    expiryDate: ''
+                                  });
+                                }
+                              });
+                              
+                              if (newItems.length > 0) {
+                                setFormData({
+                                  ...formData,
+                                  items: [...formData.items, ...newItems]
+                                });
+                              }
+                              setVariantPickerProduct(null);
+                              setProductSearch('');
+                            }}
+                            className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md shadow-primary/20"
+                          >
+                            {t('common.add')} ({Object.values(variantQuantities).reduce((a, b) => a + b, 0)})
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 
                 <div className="space-y-3">
                   {formData.items.map((item, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 items-end">
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-end shadow-sm">
                       <div className="md:col-span-4 space-y-1">
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ml-1">{t('stockEntries.modal.product')}</label>
-                        <select 
-                          required 
-                          className="w-full px-3 py-2 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
-                          value={item.productId}
-                          onChange={(e) => updateItemField(index, 'productId', e.target.value)}
-                        >
-                          <option value="">{t('stockEntries.modal.selectProduct')}</option>
-                          {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
+                        <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-medium h-[38px] flex items-center justify-between">
+                          <span>{item.productName}</span>
+                          {item.variantName && (
+                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                              {item.variantName}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="md:col-span-2 space-y-1">
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ml-1">{t('stockEntries.modal.quantity')}</label>
                         <input 
-                          type="number" 
-                          min="1" 
+                          type="text" 
+                          inputMode="decimal"
                           required 
                           className="w-full px-3 py-2 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-bold text-green-600 dark:text-green-400"
                           value={(item.quantity as any) === '' ? '' : (isNaN(item.quantity as any) ? '' : item.quantity)}
                           onChange={(e) => {
-                            const val = e.target.value;
-                            updateItemField(index, 'quantity', val === '' ? '' as any : parseInt(val));
+                            const val = e.target.value.replace(',', '.');
+                            if (val === '' || !isNaN(Number(val)) || val === '.') {
+                              updateItemField(index, 'quantity', val === '' ? '' as any : parseFloat(val));
+                            }
                           }}
                         />
                       </div>
@@ -368,7 +584,7 @@ const StockEntries: React.FC = () => {
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ml-1">{t('stockEntries.modal.batch')}</label>
                         <input 
                           type="text" 
-                          placeholder="Batch #"
+                          placeholder={t('stockEntries.modal.batchPlaceholder')}
                           className="w-full px-3 py-2 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
                           value={item.batchNumber}
                           onChange={(e) => updateItemField(index, 'batchNumber', e.target.value)}

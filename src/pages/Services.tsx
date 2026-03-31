@@ -77,7 +77,7 @@ const Services: React.FC = () => {
           ...formData,
           updatedAt: timestamp,
         });
-        await logActivity(profile.uid, profile.displayName, 'service_update', `${formData.price} DT - ${formData.description}`);
+        await logActivity(profile.uid, profile.displayName, 'service_update', t('activity.serviceUpdate', { price: formData.price, description: formData.description }));
       } else {
         await addDoc(collection(db, 'services'), {
           ...formData,
@@ -85,7 +85,7 @@ const Services: React.FC = () => {
           performedByName: profile.displayName,
           createdAt: timestamp,
         });
-        await logActivity(profile.uid, profile.displayName, 'service_create', `${formData.price} DT - ${formData.description}`);
+        await logActivity(profile.uid, profile.displayName, 'service_create', t('activity.serviceCreate', { price: formData.price, description: formData.description }));
       }
 
       setIsModalOpen(false);
@@ -102,11 +102,11 @@ const Services: React.FC = () => {
 
   const handleDelete = async (service: ServiceRecord) => {
     if (profile?.role !== 'admin' && profile?.role !== 'warehouseman') return;
-    if (!window.confirm(t('common.deleteConfirm', 'Êtes-vous sûr de vouloir supprimer cet élément ?'))) return;
+    if (!window.confirm(t('common.deleteConfirm'))) return;
 
     try {
       await deleteDoc(doc(db, 'services', service.id!));
-      if (profile) await logActivity(profile.uid, profile.displayName, 'service_delete', `${service.price} DT - ${service.description}`);
+      if (profile) await logActivity(profile.uid, profile.displayName, 'service_delete', t('activity.serviceDelete', { price: service.price, description: service.description }));
     } catch (error: any) {
       handleFirestoreError(error, OperationType.DELETE, 'services');
     }
@@ -138,8 +138,8 @@ const Services: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white">{t('services.title', 'Services')}</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">{t('services.subtitle', 'Gérez les services rendus')}</p>
+          <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white">{t('services.title')}</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">{t('services.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           {profile?.role === 'admin' && (
@@ -148,7 +148,7 @@ const Services: React.FC = () => {
               className="btn-secondary flex items-center gap-2"
             >
               <Download size={18} />
-              {t('common.exportCSV', 'Exporter CSV')}
+              {t('common.exportCSV')}
             </button>
           )}
           <button
@@ -164,7 +164,7 @@ const Services: React.FC = () => {
             className="btn-primary flex items-center gap-2 shadow-lg shadow-primary/20"
           >
             <Plus size={18} />
-            {t('services.newService', 'Nouveau Service')}
+            {t('services.newService')}
           </button>
         </div>
       </div>
@@ -176,7 +176,7 @@ const Services: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
-              placeholder={t('common.search', 'Rechercher...')}
+              placeholder={t('common.search')}
               className="input-field dark:bg-slate-800 dark:border-slate-700 dark:text-white pl-12"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -204,10 +204,10 @@ const Services: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('common.date', 'Date')}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('common.description', 'Description')}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{t('common.price', 'Prix')}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{t('common.actions', 'Actions')}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('common.date')}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('common.description')}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{t('common.price')}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -222,7 +222,7 @@ const Services: React.FC = () => {
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-slate-900 dark:text-white">{service.description}</span>
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider">{t('common.performedBy', 'Par')} {service.performedByName}</span>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider">{t('common.performedBy')} {service.performedByName}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -257,7 +257,7 @@ const Services: React.FC = () => {
               <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 dark:text-slate-600">
                 <Briefcase size={32} />
               </div>
-              <p className="text-slate-500 dark:text-slate-400 font-display">{t('services.noServices', 'Aucun service enregistré')}</p>
+              <p className="text-slate-500 dark:text-slate-400 font-display">{t('services.noServices')}</p>
             </div>
           )}
         </div>
@@ -271,7 +271,7 @@ const Services: React.FC = () => {
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
               <div>
                 <h2 className="text-xl font-display font-bold text-slate-900 dark:text-white">
-                  {editingService ? t('services.modal.editTitle', 'Modifier le Service') : t('services.modal.newTitle', 'Nouveau Service')}
+                  {editingService ? t('services.modal.editTitle') : t('services.modal.newTitle')}
                 </h2>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-colors shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
@@ -282,23 +282,24 @@ const Services: React.FC = () => {
             <form onSubmit={handleSubmit} className="p-8 space-y-6">
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('common.price', 'Prix')}</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('common.price')}</label>
                   <input
                     required
-                    type="number"
-                    min="0"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     className="input-field dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                     value={formData.price === '' ? '' : (isNaN(formData.price as any) ? '' : formData.price)}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData({...formData, price: val === '' ? '' as any : parseFloat(val)});
+                      const val = e.target.value.replace(',', '.');
+                      if (val === '' || !isNaN(Number(val)) || val === '.') {
+                        setFormData({...formData, price: val === '' ? '' as any : parseFloat(val)});
+                      }
                     }}
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('common.description', 'Description')}</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('common.description')}</label>
                   <textarea
                     required
                     rows={3}
@@ -309,7 +310,7 @@ const Services: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('common.date', 'Date')}</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('common.date')}</label>
                   <input
                     required
                     type="date"
@@ -326,13 +327,13 @@ const Services: React.FC = () => {
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 btn-secondary dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 py-3"
                 >
-                  {t('common.cancel', 'Annuler')}
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="flex-[2] btn-primary py-3 shadow-lg shadow-primary/20"
                 >
-                  {t('common.save', 'Enregistrer')}
+                  {t('common.save')}
                 </button>
               </div>
             </form>

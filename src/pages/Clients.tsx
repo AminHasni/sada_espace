@@ -100,7 +100,7 @@ const Clients: React.FC = () => {
         createdAt: new Date().toISOString()
       });
 
-      await logActivity(profile.uid, profile.displayName, 'client_payment', `Paiement reçu de ${selectedClient.name}: ${Number(paymentData.amount) || 0} DT`);
+      await logActivity(profile.uid, profile.displayName, 'client_payment', t('activity.clientPayment', { name: selectedClient.name, amount: Number(paymentData.amount) || 0 }));
       
       setIsPaymentModalOpen(false);
     } catch (error) {
@@ -115,13 +115,13 @@ const Clients: React.FC = () => {
     try {
       if (editingClient) {
         await updateDoc(doc(db, 'clients', editingClient.id), formData);
-        if (profile) await logActivity(profile.uid, profile.displayName, 'client_update', `Client modifié: ${formData.name}`);
+        if (profile) await logActivity(profile.uid, profile.displayName, 'client_update', t('activity.clientUpdate', { name: formData.name }));
       } else {
         await addDoc(collection(db, 'clients'), {
           ...formData,
           createdAt: new Date().toISOString()
         });
-        if (profile) await logActivity(profile.uid, profile.displayName, 'client_create', `Nouveau client: ${formData.name}`);
+        if (profile) await logActivity(profile.uid, profile.displayName, 'client_create', t('activity.clientCreate', { name: formData.name }));
       }
       setIsModalOpen(false);
     } catch (error) {
@@ -137,7 +137,7 @@ const Clients: React.FC = () => {
     if (window.confirm(t('clients.deleteConfirm', { name }))) {
       try {
         await deleteDoc(doc(db, 'clients', id));
-        if (profile) await logActivity(profile.uid, profile.displayName, 'client_delete', `Client supprimé: ${name}`);
+        if (profile) await logActivity(profile.uid, profile.displayName, 'client_delete', t('activity.clientDelete', { name }));
       } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `clients/${id}`);
       }
@@ -200,8 +200,8 @@ const Clients: React.FC = () => {
                 <th className="px-6 py-4">{t('clients.form.email')}</th>
                 <th className="px-6 py-4 text-right">{t('clients.creditLimit')}</th>
                 <th className="px-6 py-4 text-right">{t('clients.totalCredit')}</th>
-                <th className="px-6 py-4 text-center">{t('common.status', 'Statut')}</th>
-                <th className="px-6 py-4 text-right">{t('common.actions', 'Actions')}</th>
+                <th className="px-6 py-4 text-center">{t('common.status')}</th>
+                <th className="px-6 py-4 text-right">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -254,8 +254,8 @@ const Clients: React.FC = () => {
                         client.totalCredit <= 0 ? "bg-success/10 text-success" : 
                         isOverLimit ? "bg-danger/10 text-danger" : "bg-orange-500/10 text-orange-500"
                       )}>
-                        {client.totalCredit <= 0 ? t('common.paid', 'Réglé') : 
-                         isOverLimit ? t('common.overLimit', 'Dépassement') : t('common.credit', 'À crédit')}
+                        {client.totalCredit <= 0 ? t('common.paid') : 
+                         isOverLimit ? t('common.overLimit') : t('common.credit')}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -270,7 +270,7 @@ const Clients: React.FC = () => {
                                 ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
                                 : "text-success hover:bg-success/10"
                             )}
-                            title={t('clients.recordPayment', 'Enregistrer Paiement')}
+                            title={t('clients.recordPayment')}
                           >
                             <Wallet size={16} />
                           </button>
@@ -302,7 +302,7 @@ const Clients: React.FC = () => {
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
                     <User size={32} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-                    {t('clients.noClients', 'Aucun client trouvé')}
+                    {t('clients.noClients')}
                   </td>
                 </tr>
               )}
@@ -379,12 +379,16 @@ const Clients: React.FC = () => {
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.initialCredit')}</label>
                   <input
                     required
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     className="input-field"
-                    value={isNaN(formData.totalCredit) ? '' : formData.totalCredit}
+                    value={isNaN(formData.totalCredit as any) ? '' : formData.totalCredit}
                     onChange={(e) => {
-                      const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                      setFormData({ ...formData, totalCredit: isNaN(val) ? 0 : val });
+                      const valStr = e.target.value.replace(',', '.');
+                      if (valStr === '' || !isNaN(Number(valStr)) || valStr === '.') {
+                        const val = valStr === '' ? 0 : parseFloat(valStr);
+                        setFormData({ ...formData, totalCredit: isNaN(val) ? 0 : val });
+                      }
                     }}
                   />
                 </div>
@@ -392,12 +396,16 @@ const Clients: React.FC = () => {
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.creditLimit')}</label>
                   <input
                     disabled={profile?.role !== 'admin'}
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     className="input-field disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-500"
-                    value={isNaN(formData.creditLimit) ? '' : formData.creditLimit}
+                    value={isNaN(formData.creditLimit as any) ? '' : formData.creditLimit}
                     onChange={(e) => {
-                      const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                      setFormData({ ...formData, creditLimit: isNaN(val) ? 0 : val });
+                      const valStr = e.target.value.replace(',', '.');
+                      if (valStr === '' || !isNaN(Number(valStr)) || valStr === '.') {
+                        const val = valStr === '' ? 0 : parseFloat(valStr);
+                        setFormData({ ...formData, creditLimit: isNaN(val) ? 0 : val });
+                      }
                     }}
                   />
                 </div>
@@ -430,7 +438,7 @@ const Clients: React.FC = () => {
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
               <div>
                 <h2 className="text-xl font-display font-bold text-slate-900 dark:text-white">
-                  {t('clients.modal.paymentTitle', 'Enregistrer un Paiement')}
+                  {t('clients.modal.paymentTitle')}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{selectedClient.name}</p>
               </div>
@@ -441,26 +449,26 @@ const Clients: React.FC = () => {
 
             <form onSubmit={handlePaymentSubmit} className="p-8 space-y-6">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.amount', 'Montant')}</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.amount')}</label>
                 <input
                   required
-                  type="number"
-                  min="0"
-                  max={selectedClient.totalCredit}
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   className="input-field text-2xl font-bold text-success"
                   value={paymentData.amount === '' ? '' : (isNaN(paymentData.amount as any) ? '' : paymentData.amount)}
                   onChange={(e) => {
-                    const val = e.target.value;
-                    setPaymentData({ ...paymentData, amount: val === '' ? '' as any : parseFloat(val) });
+                    const val = e.target.value.replace(',', '.');
+                    if (val === '' || !isNaN(Number(val)) || val === '.') {
+                      setPaymentData({ ...paymentData, amount: val === '' ? '' as any : parseFloat(val) });
+                    }
                   }}
                 />
-                <p className="text-[10px] text-slate-400">{t('clients.currentCredit', 'Crédit actuel')}: {selectedClient.totalCredit.toLocaleString()} DT</p>
+                <p className="text-[10px] text-slate-400">{t('clients.currentCredit')}: {selectedClient.totalCredit.toLocaleString()} {t('common.currency')}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.date', 'Date')}</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.date')}</label>
                   <input
                     required
                     type="date"
@@ -470,21 +478,21 @@ const Clients: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.method', 'Méthode')}</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.method')}</label>
                   <select
                     className="input-field"
                     value={paymentData.method}
                     onChange={(e) => setPaymentData({ ...paymentData, method: e.target.value as Payment['method'] })}
                   >
-                    <option value="cash">{t('common.cash', 'Espèces')}</option>
-                    <option value="check">{t('common.check', 'Chèque')}</option>
-                    <option value="transfer">{t('common.transfer', 'Virement')}</option>
+                    <option value="cash">{t('common.cash')}</option>
+                    <option value="check">{t('common.check')}</option>
+                    <option value="transfer">{t('common.transfer')}</option>
                   </select>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.notes', 'Notes')}</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.notes')}</label>
                 <textarea
                   className="input-field"
                   rows={2}
@@ -499,14 +507,14 @@ const Clients: React.FC = () => {
                   onClick={() => setIsPaymentModalOpen(false)}
                   className="flex-1 btn-secondary py-3"
                 >
-                  {t('common.cancel', 'Annuler')}
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={Number(paymentData.amount) <= 0}
                   className="flex-[2] btn-primary py-3 shadow-lg shadow-primary/20 bg-success hover:bg-success/90 border-success hover:border-success/90 disabled:opacity-50"
                 >
-                  {t('common.confirm', 'Confirmer')}
+                  {t('common.confirm')}
                 </button>
               </div>
             </form>

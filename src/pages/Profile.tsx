@@ -3,12 +3,12 @@ import { useAuth } from '../components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { User, Shield, Clock, Mail, Phone, Edit2, Save, X, Key, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { fr, arDZ } from 'date-fns/locale';
+import { fr } from 'date-fns/locale';
 import { cn } from '../lib/utils';
 
 const Profile: React.FC = () => {
   const { user, profile, updateProfile, resetPassword } = useAuth();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     displayName: profile?.displayName || '',
@@ -17,7 +17,7 @@ const Profile: React.FC = () => {
   const [isResetting, setIsResetting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const dateLocale = i18n.language === 'ar' ? arDZ : fr;
+  const dateLocale = fr;
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();

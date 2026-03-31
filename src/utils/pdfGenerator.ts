@@ -3,30 +3,14 @@ import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { fr, arDZ } from 'date-fns/locale';
 import { Product, Client, StockExit, Payment, Expense, ServiceRecord } from '../types';
-import arabicReshaper from 'arabic-reshaper';
-import bidiFactory from 'bidi-js';
-
-// Initialize bidi with a safer check for the factory function
-const getBidiInstance = () => {
-  try {
-    const factory = (bidiFactory as any).default || bidiFactory;
-    return typeof factory === 'function' ? factory() : factory;
-  } catch (e) {
-    console.error('Failed to initialize bidi-js:', e);
-    return null;
-  }
-};
-
-const bidi = getBidiInstance();
 
 // Helper to detect Arabic characters
 const hasArabic = (text: string) => /[\u0600-\u06FF]/.test(text);
 
 // Use more reliable font sources with CORS support
 const AMIRI_FONT_URLS = [
-  'https://github.com/googlefonts/amiri/raw/master/fonts/ttf/Amiri-Regular.ttf',
-  'https://github.com/googlefonts/amiri/raw/main/fonts/ttf/Amiri-Regular.ttf',
-  'https://cdn.jsdelivr.net/gh/googlefonts/amiri@main/fonts/ttf/Amiri-Regular.ttf'
+  'https://raw.githubusercontent.com/googlefonts/amiri/master/fonts/ttf/Amiri-Regular.ttf',
+  'https://raw.githubusercontent.com/googlefonts/amiri/main/fonts/ttf/Amiri-Regular.ttf'
 ];
 
 let cachedFontBase64: string | null = null;
@@ -83,34 +67,6 @@ const fetchFontAsBase64 = async (urls: string[]): Promise<string> => {
   throw new Error(errorMessage);
 };
 
-const processArabicText = (text: string) => {
-  if (!text) return '';
-  try {
-    // Check if it's a mix of Arabic and other characters
-    if (!hasArabic(text)) return text;
-
-    // Reshape Arabic characters
-    // Using a safe access for the reshape function
-    const reshaper = (arabicReshaper as any).default || arabicReshaper;
-    const reshaped = typeof reshaper.reshape === 'function' 
-      ? reshaper.reshape(text) 
-      : (typeof reshaper === 'function' ? reshaper(text) : text);
-    
-    // Apply Bidi algorithm to handle RTL correctly
-    if (bidi) {
-      if (typeof bidi.getVisual === 'function') {
-        return bidi.getVisual(reshaped);
-      } else if (typeof (bidi as any).processText === 'function') {
-        return (bidi as any).processText(reshaped).visual;
-      }
-    }
-    return reshaped;
-  } catch (e) {
-    console.error('Error processing Arabic text:', e);
-    return text;
-  }
-};
-
 interface ReportData {
   dateRange: { start: string; end: string };
   totalSales: number;
@@ -146,10 +102,6 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
 
   const formatText = (text: string) => {
     if (!text) return '';
-    // Process if it's Arabic UI OR if the text itself contains Arabic characters
-    if (isArabicUI || hasArabic(text)) {
-      return processArabicText(text);
-    }
     return text;
   };
 

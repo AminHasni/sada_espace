@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../components/AuthProvider';
 import { Sparkles } from 'lucide-react';
-import LanguageSwitcher from '../components/LanguageSwitcher';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { cn } from '../lib/utils';
 
 const LoginPage: React.FC = () => {

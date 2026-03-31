@@ -29,9 +29,9 @@ const Stock: React.FC = () => {
     reference: '',
     category: '',
     description: '',
-    purchasePrice: 0,
-    salePrice: 0,
-    stockQuantity: 0,
+    purchasePrice: '' as any,
+    salePrice: '' as any,
+    stockQuantity: '' as any,
     minStockLevel: 5,
     unit: 'unité',
     variants: []
@@ -39,8 +39,8 @@ const Stock: React.FC = () => {
 
   const [newVariant, setNewVariant] = useState<Partial<ProductVariant>>({
     name: '',
-    stockQuantity: 0,
-    priceAdjustment: 0
+    stockQuantity: '' as any,
+    priceAdjustment: '' as any
   });
 
   useEffect(() => {
@@ -67,9 +67,9 @@ const Stock: React.FC = () => {
         reference: `REF-${Date.now().toString().slice(-6)}`,
         category: '',
         description: '',
-        purchasePrice: 0,
-        salePrice: 0,
-        stockQuantity: 0,
+        purchasePrice: '' as any,
+        salePrice: '' as any,
+        stockQuantity: '' as any,
         minStockLevel: 5,
         unit: 'unité',
         variants: []
@@ -126,7 +126,7 @@ const Stock: React.FC = () => {
       ...formData,
       variants: [...(formData.variants || []), variant]
     });
-    setNewVariant({ name: '', stockQuantity: 0, priceAdjustment: 0 });
+    setNewVariant({ name: '', stockQuantity: '' as any, priceAdjustment: '' as any });
   };
 
   const handleRemoveVariant = (id: string) => {
@@ -382,6 +382,7 @@ const Stock: React.FC = () => {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('stock.form.category')}</label>
                   <input
+                    required
                     type="text"
                     list="categories-list"
                     className="input-field"
@@ -398,6 +399,7 @@ const Stock: React.FC = () => {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('stock.form.unit')}</label>
                   <select
+                    required
                     className="input-field"
                     value={formData.unit}
                     onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
@@ -414,6 +416,7 @@ const Stock: React.FC = () => {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('stock.form.description')}</label>
                 <textarea
+                  required
                   className="input-field min-h-[100px] py-3"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -427,10 +430,10 @@ const Stock: React.FC = () => {
                     required
                     type="number"
                     className="input-field"
-                    value={isNaN(formData.purchasePrice) ? '' : formData.purchasePrice}
+                    value={(formData.purchasePrice as any) === '' ? '' : (isNaN(formData.purchasePrice as any) ? '' : formData.purchasePrice)}
                     onChange={(e) => {
-                      const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                      setFormData({ ...formData, purchasePrice: isNaN(val) ? 0 : val });
+                      const val = e.target.value;
+                      setFormData({ ...formData, purchasePrice: val === '' ? '' as any : parseFloat(val) });
                     }}
                   />
                 </div>
@@ -440,10 +443,10 @@ const Stock: React.FC = () => {
                     required
                     type="number"
                     className="input-field"
-                    value={isNaN(formData.salePrice) ? '' : formData.salePrice}
+                    value={(formData.salePrice as any) === '' ? '' : (isNaN(formData.salePrice as any) ? '' : formData.salePrice)}
                     onChange={(e) => {
-                      const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                      setFormData({ ...formData, salePrice: isNaN(val) ? 0 : val });
+                      const val = e.target.value;
+                      setFormData({ ...formData, salePrice: val === '' ? '' as any : parseFloat(val) });
                     }}
                   />
                 </div>
@@ -453,10 +456,10 @@ const Stock: React.FC = () => {
                     required
                     type="number"
                     className="input-field"
-                    value={isNaN(formData.stockQuantity) ? '' : formData.stockQuantity}
+                    value={(formData.stockQuantity as any) === '' ? '' : (isNaN(formData.stockQuantity as any) ? '' : formData.stockQuantity)}
                     onChange={(e) => {
-                      const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                      setFormData({ ...formData, stockQuantity: isNaN(val) ? 0 : val });
+                      const val = e.target.value;
+                      setFormData({ ...formData, stockQuantity: val === '' ? '' as any : parseFloat(val) });
                     }}
                   />
                 </div>
@@ -497,8 +500,8 @@ const Stock: React.FC = () => {
                       type="number"
                       placeholder={t('stock.form.variantStockPlaceholder')}
                       className="input-field bg-white dark:bg-slate-800"
-                      value={newVariant.stockQuantity}
-                      onChange={(e) => setNewVariant({ ...newVariant, stockQuantity: Number(e.target.value) })}
+                      value={(newVariant.stockQuantity as any) === '' ? '' : newVariant.stockQuantity}
+                      onChange={(e) => setNewVariant({ ...newVariant, stockQuantity: e.target.value === '' ? '' as any : Number(e.target.value) })}
                     />
                   </div>
                   <div>
@@ -506,8 +509,8 @@ const Stock: React.FC = () => {
                       type="number"
                       placeholder={t('stock.form.variantPricePlaceholder')}
                       className="input-field bg-white dark:bg-slate-800"
-                      value={newVariant.priceAdjustment}
-                      onChange={(e) => setNewVariant({ ...newVariant, priceAdjustment: Number(e.target.value) })}
+                      value={(newVariant.priceAdjustment as any) === '' ? '' : newVariant.priceAdjustment}
+                      onChange={(e) => setNewVariant({ ...newVariant, priceAdjustment: e.target.value === '' ? '' as any : Number(e.target.value) })}
                     />
                   </div>
                   <button

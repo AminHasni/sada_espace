@@ -30,7 +30,7 @@ const Clients: React.FC = () => {
   });
 
   const [paymentData, setPaymentData] = useState({
-    amount: 0,
+    amount: '' as any,
     method: 'cash' as Payment['method'],
     notes: '',
     date: new Date().toISOString().split('T')[0]
@@ -69,7 +69,7 @@ const Clients: React.FC = () => {
   const handleOpenPaymentModal = (client: Client) => {
     setSelectedClient(client);
     setPaymentData({
-      amount: 0,
+      amount: '' as any,
       method: 'cash',
       notes: '',
       date: new Date().toISOString().split('T')[0]
@@ -84,14 +84,14 @@ const Clients: React.FC = () => {
     try {
       const clientRef = doc(db, 'clients', selectedClient.id!);
       const currentCredit = selectedClient.totalCredit || 0;
-      const newCredit = Math.max(0, currentCredit - paymentData.amount);
+      const newCredit = Math.max(0, currentCredit - (Number(paymentData.amount) || 0));
 
       await updateDoc(clientRef, { totalCredit: newCredit });
       
       await addDoc(collection(db, 'payments'), {
         clientId: selectedClient.id,
         clientName: selectedClient.name,
-        amount: paymentData.amount,
+        amount: Number(paymentData.amount) || 0,
         date: paymentData.date,
         method: paymentData.method,
         notes: paymentData.notes,
@@ -100,7 +100,7 @@ const Clients: React.FC = () => {
         createdAt: new Date().toISOString()
       });
 
-      await logActivity(profile.uid, profile.displayName, 'client_payment', `Paiement reçu de ${selectedClient.name}: ${paymentData.amount} DT`);
+      await logActivity(profile.uid, profile.displayName, 'client_payment', `Paiement reçu de ${selectedClient.name}: ${Number(paymentData.amount) || 0} DT`);
       
       setIsPaymentModalOpen(false);
     } catch (error) {
@@ -130,7 +130,7 @@ const Clients: React.FC = () => {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (profile?.role !== 'admin') {
+    if (profile?.role !== 'admin' && profile?.role !== 'warehouseman') {
       alert(t('clients.permissionDenied'));
       return;
     }
@@ -284,7 +284,7 @@ const Clients: React.FC = () => {
                             <Edit2 size={16} />
                           </button>
                         )}
-                        {profile?.role === 'admin' && (
+                        {(profile?.role === 'admin' || profile?.role === 'warehouseman') && (
                           <button
                             onClick={() => handleDelete(client.id!, client.name)}
                             className="p-2 text-slate-400 hover:text-danger hover:bg-danger/5 rounded-lg transition-all"
@@ -354,6 +354,7 @@ const Clients: React.FC = () => {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.email')}</label>
                   <input
+                    required
                     type="email"
                     className="input-field"
                     value={formData.email}
@@ -365,6 +366,7 @@ const Clients: React.FC = () => {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.address')}</label>
                 <input
+                  required
                   type="text"
                   className="input-field"
                   value={formData.address}
@@ -376,6 +378,7 @@ const Clients: React.FC = () => {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('clients.form.initialCredit')}</label>
                   <input
+                    required
                     type="number"
                     className="input-field"
                     value={isNaN(formData.totalCredit) ? '' : formData.totalCredit}
@@ -446,8 +449,11 @@ const Clients: React.FC = () => {
                   max={selectedClient.totalCredit}
                   step="0.01"
                   className="input-field text-2xl font-bold text-success"
-                  value={paymentData.amount}
-                  onChange={(e) => setPaymentData({ ...paymentData, amount: parseFloat(e.target.value) || 0 })}
+                  value={paymentData.amount === '' ? '' : (isNaN(paymentData.amount as any) ? '' : paymentData.amount)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPaymentData({ ...paymentData, amount: val === '' ? '' as any : parseFloat(val) });
+                  }}
                 />
                 <p className="text-[10px] text-slate-400">{t('clients.currentCredit', 'Crédit actuel')}: {selectedClient.totalCredit.toLocaleString()} DT</p>
               </div>
@@ -497,7 +503,7 @@ const Clients: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={paymentData.amount <= 0}
+                  disabled={Number(paymentData.amount) <= 0}
                   className="flex-[2] btn-primary py-3 shadow-lg shadow-primary/20 bg-success hover:bg-success/90 border-success hover:border-success/90 disabled:opacity-50"
                 >
                   {t('common.confirm', 'Confirmer')}

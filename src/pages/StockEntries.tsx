@@ -49,6 +49,7 @@ const StockEntries: React.FC = () => {
     entryNumber: `RECP-${Date.now().toString().slice(-6)}`,
     type: 'adjustment_plus' as StockEntry['type'],
     receptionDate: new Date().toISOString().split('T')[0],
+    reference: '',
     notes: '',
     items: [] as StockEntryItem[]
   });
@@ -77,6 +78,7 @@ const StockEntries: React.FC = () => {
       entryNumber: `RECP-${Date.now().toString().slice(-6)}`,
       type: 'adjustment_plus',
       receptionDate: new Date().toISOString().split('T')[0],
+      reference: '',
       notes: '',
       items: []
     });
@@ -86,7 +88,7 @@ const StockEntries: React.FC = () => {
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { productId: '', productName: '', quantity: 1, unitPrice: 0, batchNumber: '', expiryDate: '' }]
+      items: [...formData.items, { productId: '', productName: '', quantity: '' as any, unitPrice: 0, batchNumber: '', expiryDate: '' }]
     });
   };
 
@@ -118,12 +120,18 @@ const StockEntries: React.FC = () => {
 
     try {
       await runTransaction(db, async (transaction) => {
-        // 1. Update Product Stocks and Create History
         const entryRef = doc(collection(db, 'stock_entries'));
         
-        for (const item of formData.items) {
-          const productRef = doc(db, 'products', item.productId);
-          const productSnap = await transaction.get(productRef);
+        // 1. All Reads
+        const productRefs = formData.items.map(item => doc(db, 'products', item.productId));
+        const productSnaps = await Promise.all(productRefs.map(ref => transaction.get(ref)));
+
+        // 2. All Writes
+        for (let i = 0; i < formData.items.length; i++) {
+          const item = formData.items[i];
+          const productRef = productRefs[i];
+          const productSnap = productSnaps[i];
+
           if (productSnap.exists()) {
             const currentStock = productSnap.data().stockQuantity || 0;
             const newStock = currentStock + item.quantity;
@@ -146,7 +154,7 @@ const StockEntries: React.FC = () => {
           }
         }
 
-        // 2. Create Stock Entry
+        // 3. Create Stock Entry
         const entryData = {
           ...formData,
           receivedBy: profile.uid,
@@ -155,7 +163,7 @@ const StockEntries: React.FC = () => {
         };
         transaction.set(entryRef, entryData);
 
-        // 3. Log Activity
+        // 4. Log Activity
         const logRef = doc(collection(db, 'logs'));
         transaction.set(logRef, {
           userId: profile.uid,
@@ -307,8 +315,8 @@ const StockEntries: React.FC = () => {
                     type="text" 
                     placeholder="ex: Client X, Inventaire..."
                     className="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                    value={formData.reference}
+                    onChange={(e) => setFormData({...formData, reference: e.target.value})}
                   />
                 </div>
                 <div className="space-y-1">
@@ -349,10 +357,10 @@ const StockEntries: React.FC = () => {
                           min="1" 
                           required 
                           className="w-full px-3 py-2 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-bold text-green-600 dark:text-green-400"
-                          value={isNaN(item.quantity) ? '' : item.quantity}
+                          value={(item.quantity as any) === '' ? '' : (isNaN(item.quantity as any) ? '' : item.quantity)}
                           onChange={(e) => {
-                            const val = e.target.value === '' ? 0 : parseInt(e.target.value);
-                            updateItemField(index, 'quantity', isNaN(val) ? 0 : val);
+                            const val = e.target.value;
+                            updateItemField(index, 'quantity', val === '' ? '' as any : parseInt(val));
                           }}
                         />
                       </div>

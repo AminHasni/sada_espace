@@ -74,7 +74,7 @@ service cloud.firestore {
         isAdmin() || 
         (isWarehouseman() && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['creditLimit'])))
       );
-      allow delete: if isAdmin() && isNotPaused();
+      allow delete: if (isAdmin() || isWarehouseman()) && isNotPaused();
     }
     
     match /suppliers/{id} {
@@ -121,14 +121,27 @@ service cloud.firestore {
       allow read: if isAuthenticated() && isNotPaused();
       allow create: if isAuthenticated() && (isAdmin() || isWarehouseman()) && isNotPaused();
       allow update: if isAuthenticated() && isAdmin() && isNotPaused();
-      allow delete: if isAuthenticated() && isAdmin() && isNotPaused();
+      allow delete: if isAuthenticated() && (isAdmin() || isWarehouseman()) && isNotPaused();
     }
 
     match /services/{id} {
       allow read: if isAuthenticated() && isNotPaused();
       allow create: if isAuthenticated() && (isAdmin() || isWarehouseman()) && isNotPaused();
       allow update: if isAuthenticated() && isAdmin() && isNotPaused();
-      allow delete: if isAuthenticated() && isAdmin() && isNotPaused();
+      allow delete: if isAuthenticated() && (isAdmin() || isWarehouseman()) && isNotPaused();
+    }
+
+    match /reclamations/{id} {
+      allow read: if isAuthenticated() && isNotPaused() && (isAdmin() || request.auth.uid == resource.data.submittedBy);
+      allow create: if isAuthenticated() && isNotPaused() && request.auth.uid == request.resource.data.submittedBy;
+      allow update: if isAuthenticated() && isNotPaused() && (
+        isAdmin() || 
+        (request.auth.uid == resource.data.submittedBy && resource.data.status == 'pending')
+      );
+      allow delete: if isAuthenticated() && isNotPaused() && (
+        isAdmin() || 
+        (request.auth.uid == resource.data.submittedBy && resource.data.status == 'pending')
+      );
     }
 
     // Catch-all for other paths

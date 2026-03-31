@@ -263,6 +263,7 @@ const Suppliers: React.FC = () => {
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">{t('suppliers.form.contactName')}</label>
                   <input 
                     type="text" 
+                    required
                     className="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all"
                     value={formData.contactName}
                     onChange={(e) => setFormData({...formData, contactName: e.target.value})}
@@ -273,6 +274,7 @@ const Suppliers: React.FC = () => {
                     <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">{t('suppliers.form.phone')}</label>
                     <input 
                       type="tel" 
+                      required
                       className="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all"
                       value={formData.phone}
                       onChange={(e) => setFormData({...formData, phone: e.target.value})}
@@ -282,6 +284,7 @@ const Suppliers: React.FC = () => {
                     <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">{t('suppliers.form.email')}</label>
                     <input 
                       type="email" 
+                      required
                       className="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all"
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -292,6 +295,7 @@ const Suppliers: React.FC = () => {
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">{t('suppliers.form.category')}</label>
                   <input 
                     type="text" 
+                    required
                     placeholder={t('suppliers.form.categoryPlaceholder')}
                     className="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all"
                     value={formData.category}

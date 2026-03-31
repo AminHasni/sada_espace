@@ -9,6 +9,7 @@
     "expenses": "Dépenses",
     "services": "Services",
     "users": "Utilisateurs",
+    "reclamations": "Réclamations",
     "profile": "Mon Profil",
     "logout": "Déconnexion"
   },
@@ -24,6 +25,9 @@
     "actions": "Actions",
     "status": "Statut",
     "date": "Date",
+    "dateHeure": "Date & Heure",
+    "productsCategories": "Produits & Catégories",
+    "service": "Service",
     "amount": "Montant",
     "notes": "Notes",
     "total": "Total",
@@ -117,9 +121,11 @@
     },
     "units": {
       "unit": "Unité",
+      "unité": "Unité",
       "kg": "Kilogramme (kg)",
       "litre": "Litre (L)",
       "metre": "Mètre (m)",
+      "mètre": "Mètre (m)",
       "paquet": "Paquet"
     }
   },
@@ -377,6 +383,45 @@
     "modal": {
       "newTitle": "Enregistrer un service",
       "editTitle": "Modifier le service"
+    }
+  },
+  "reclamations": {
+    "title": "Réclamations",
+    "subtitle": "Soumettez et suivez vos réclamations et demandes d'assistance.",
+    "newReclamation": "Nouvelle Réclamation",
+    "searchPlaceholder": "Rechercher une réclamation...",
+    "submittedBy": "Soumis par: {{name}}",
+    "noReclamations": "Aucune réclamation trouvée.",
+    "deleteConfirm": "Supprimer cette réclamation ?",
+    "table": {
+      "title": "Sujet",
+      "status": "Statut",
+      "priority": "Priorité",
+      "date": "Date"
+    },
+    "modal": {
+      "newTitle": "Soumettre une réclamation",
+      "editTitle": "Modifier la réclamation",
+      "viewTitle": "Détails de la réclamation",
+      "title": "Sujet *",
+      "description": "Description détaillée *",
+      "priority": "Priorité",
+      "status": "Statut",
+      "resolutionNotes": "Notes de résolution",
+      "cancel": "Annuler",
+      "save": "Soumettre",
+      "update": "Mettre à jour"
+    },
+    "status": {
+      "pending": "En attente",
+      "in_progress": "En cours",
+      "resolved": "Résolue",
+      "rejected": "Rejetée"
+    },
+    "priority": {
+      "low": "Basse",
+      "medium": "Moyenne",
+      "high": "Haute"
     }
   },
   "errorBoundary": {

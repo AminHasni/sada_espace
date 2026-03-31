@@ -191,6 +191,24 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["amount", "description", "date", "recordedBy"]
+    },
+    "Reclamation": {
+      "title": "Reclamation",
+      "description": "Complaints or support requests from warehousemen.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "in_progress", "resolved", "rejected"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "submittedBy": { "type": "string" },
+        "submittedByName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "resolvedAt": { "type": "string", "format": "date-time" },
+        "resolutionNotes": { "type": "string" }
+      },
+      "required": ["title", "description", "status", "priority", "submittedBy", "createdAt"]
     }
   },
   "firestore": {
@@ -204,6 +222,7 @@
     "/stock_entries/{entryId}": { "schema": "StockEntry", "description": "Goods received" },
     "/stock_exits/{exitId}": { "schema": "StockExit", "description": "Goods dispatched" },
     "/notifications/{notificationId}": { "schema": "Notification", "description": "User notifications" },
-    "/expenses/{expenseId}": { "schema": "Expense", "description": "External expenses" }
+    "/expenses/{expenseId}": { "schema": "Expense", "description": "External expenses" },
+    "/reclamations/{reclamationId}": { "schema": "Reclamation", "description": "User reclamations" }
   }
 }

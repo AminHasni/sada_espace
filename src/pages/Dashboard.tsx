@@ -57,6 +57,7 @@ const Dashboard: React.FC = () => {
   const [services, setServices] = useState<ServiceRecord[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<{ type: 'stock' | 'credit', content: string } | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({
     start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
@@ -197,23 +198,30 @@ const Dashboard: React.FC = () => {
     };
   }, [stockExits, payments, expenses, services, clients, dateRange]);
 
-  const handleGenerateReport = () => {
+  const handleGenerateReport = async () => {
     if (profile?.role !== 'admin') return;
-    
-    generatePDFReport({
-      dateRange,
-      totalSales: filteredData.totalSales,
-      totalPayments: filteredData.totalPayments,
-      totalExpenses: filteredData.totalExpenses,
-      totalServices: filteredData.totalServices,
-      totalCredits: filteredData.totalCredits,
-      netProfit: filteredData.netProfit,
-      stockExits: filteredData.periodSales,
-      payments: filteredData.periodPayments,
-      expenses: filteredData.periodExpenses,
-      services: filteredData.periodServices,
-      language: i18n.language
-    }, t);
+    setIsGeneratingReport(true);
+    try {
+      await generatePDFReport({
+        dateRange,
+        totalSales: filteredData.totalSales,
+        totalPayments: filteredData.totalPayments,
+        totalExpenses: filteredData.totalExpenses,
+        totalServices: filteredData.totalServices,
+        totalCredits: filteredData.totalCredits,
+        netProfit: filteredData.netProfit,
+        stockExits: filteredData.periodSales,
+        payments: filteredData.periodPayments,
+        expenses: filteredData.periodExpenses,
+        services: filteredData.periodServices,
+        products: products,
+        language: i18n.language
+      }, t);
+    } catch (error) {
+      console.error('Report generation failed:', error);
+    } finally {
+      setIsGeneratingReport(false);
+    }
   };
 
   const totalStockValue = products.reduce((sum, p) => sum + (p.stockQuantity * p.purchasePrice), 0);
@@ -351,10 +359,15 @@ const Dashboard: React.FC = () => {
               {profile?.role === 'admin' && (
                 <button
                   onClick={handleGenerateReport}
-                  className="btn-primary flex items-center gap-2 shadow-lg shadow-primary/20 whitespace-nowrap"
+                  disabled={isGeneratingReport}
+                  className="btn-primary flex items-center gap-2 shadow-lg shadow-primary/20 whitespace-nowrap disabled:opacity-50"
                 >
-                  <Download size={18} />
-                  {t('dashboard.generateReport', 'Générer Rapport')}
+                  {isGeneratingReport ? (
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <Download size={18} />
+                  )}
+                  {isGeneratingReport ? t('common.loading', 'Chargement...') : t('dashboard.generateReport', 'Générer Rapport')}
                 </button>
               )}
             </div>

@@ -136,6 +136,7 @@ export interface StockEntry {
   receptionDate: string;
   receivedBy: string; // User UID
   receivedByName: string;
+  reference?: string;
   notes?: string;
   createdAt: string;
 }
@@ -191,6 +192,20 @@ export interface ServiceRecord {
   performedBy: string;
   performedByName: string;
   createdAt: string;
+}
+
+export interface Reclamation {
+  id?: string;
+  title: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'resolved' | 'rejected';
+  priority: 'low' | 'medium' | 'high';
+  submittedBy: string; // User UID
+  submittedByName: string;
+  createdAt: string;
+  updatedAt?: string;
+  resolvedAt?: string;
+  resolutionNotes?: string;
 }
 
 export type UserRole = 'admin' | 'warehouseman';

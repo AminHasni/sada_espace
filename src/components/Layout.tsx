@@ -21,7 +21,8 @@ import {
   Building2,
   ShoppingCart,
   Wallet,
-  Briefcase
+  Briefcase,
+  MessageSquareWarning
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { cn } from '../lib/utils';
@@ -50,6 +51,7 @@ const Layout: React.FC = () => {
     { to: '/clients', icon: Users, labelKey: 'nav.clients', roles: ['admin', 'warehouseman'] },
     { to: '/expenses', icon: Wallet, labelKey: 'nav.expenses', roles: ['admin', 'warehouseman'] },
     { to: '/services', icon: Briefcase, labelKey: 'nav.services', roles: ['admin', 'warehouseman'] },
+    { to: '/reclamations', icon: MessageSquareWarning, labelKey: 'nav.reclamations', roles: ['admin', 'warehouseman'] },
     { to: '/users', icon: Shield, labelKey: 'nav.users', roles: ['admin'] },
   ];
 
@@ -108,11 +110,6 @@ const Layout: React.FC = () => {
         </div>
 
         <div className="mt-auto p-6 border-t border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 dark:border-slate-700">
-          <div className="mb-4 flex items-center justify-center gap-2">
-            <LanguageSwitcher />
-            <ThemeToggle />
-          </div>
-          
           <NavLink 
             to="/profile"
             className={({ isActive }) => cn(
@@ -148,6 +145,8 @@ const Layout: React.FC = () => {
           <span className="font-display font-bold text-base text-slate-900 dark:text-white">Espace Sadaa - فضاء صدى</span>
         </div>
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <ThemeToggle />
           <NotificationBell />
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -186,10 +185,6 @@ const Layout: React.FC = () => {
               ))}
               
               <div className="pt-6 border-t border-slate-100 dark:border-slate-800 mt-6 space-y-2">
-                <div className="flex items-center justify-center gap-4 mb-4">
-                  <LanguageSwitcher />
-                  <ThemeToggle />
-                </div>
                 <NavLink
                   to="/profile"
                   onClick={() => setIsMenuOpen(false)}
@@ -222,7 +217,9 @@ const Layout: React.FC = () => {
              <h2 className="text-xl font-display font-bold text-slate-900 dark:text-white">{currentPageLabel}</h2>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <ThemeToggle />
             <NotificationBell />
             
             <NavLink to="/profile" className="flex items-center gap-3 group">

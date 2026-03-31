@@ -45,6 +45,7 @@ const StockExits: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedExitId, setExpandedExitId] = useState<string | null>(null);
+  const [productSearch, setProductSearch] = useState('');
 
   const dateLocale = i18n.language === 'ar' ? arDZ : fr;
 
@@ -57,7 +58,7 @@ const StockExits: React.FC = () => {
     serviceName: '',
     exitDate: new Date().toISOString().split('T')[0],
     paymentStatus: 'paid' as 'paid' | 'credit',
-    amountPaid: 0,
+    amountPaid: '' as any,
     notes: '',
     items: [] as StockExitItem[]
   });
@@ -102,7 +103,7 @@ const StockExits: React.FC = () => {
       serviceName: '',
       exitDate: new Date().toISOString().split('T')[0],
       paymentStatus: 'paid',
-      amountPaid: 0,
+      amountPaid: '' as any,
       notes: '',
       items: []
     });
@@ -112,7 +113,7 @@ const StockExits: React.FC = () => {
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { productId: '', productName: '', quantity: 1, unitPrice: 0 }]
+      items: [...formData.items, { productId: '', productName: '', quantity: 1, unitPrice: '' as any }]
     });
   };
 
@@ -130,7 +131,7 @@ const StockExits: React.FC = () => {
         ...newItems[index], 
         productId: value, 
         productName: product?.name || '', 
-        unitPrice: product?.salePrice || 0 
+        unitPrice: product?.salePrice === undefined ? '' as any : product.salePrice
       };
     } else {
       newItems[index] = { ...newItems[index], [field]: value };
@@ -144,12 +145,24 @@ const StockExits: React.FC = () => {
 
     try {
       await runTransaction(db, async (transaction) => {
-        // 1. Check and Update Product Stocks
         const exitRef = doc(collection(db, 'stock_exits'));
         
-        for (const item of formData.items) {
-          const productRef = doc(db, 'products', item.productId);
-          const productSnap = await transaction.get(productRef);
+        // 1. All Reads
+        const productRefs = formData.items.map(item => doc(db, 'products', item.productId));
+        const productSnaps = await Promise.all(productRefs.map(ref => transaction.get(ref)));
+        
+        let clientSnap = null;
+        let clientRef = null;
+        if (formData.type === 'sale' && formData.clientId) {
+          clientRef = doc(db, 'clients', formData.clientId);
+          clientSnap = await transaction.get(clientRef);
+        }
+
+        // 2. All Writes
+        for (let i = 0; i < formData.items.length; i++) {
+          const item = formData.items[i];
+          const productRef = productRefs[i];
+          const productSnap = productSnaps[i];
           
           if (!productSnap.exists()) {
             throw new Error(`Produit non trouvé: ${item.productName}`);
@@ -194,9 +207,9 @@ const StockExits: React.FC = () => {
           });
         }
 
-        // 2. Create Stock Exit
+        // 3. Create Stock Exit
         const client = clients.find(c => c.id === formData.clientId);
-        const totalAmount = formData.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+        const totalAmount = formData.items.reduce((sum, item) => sum + (item.quantity * (Number(item.unitPrice) || 0)), 0);
         
         const exitData = {
           ...formData,
@@ -208,25 +221,23 @@ const StockExits: React.FC = () => {
         };
         transaction.set(exitRef, exitData);
 
-        // 3. Update Client Credit if it's a sale to a client
-        if (formData.type === 'sale' && formData.clientId) {
-          const clientRef = doc(db, 'clients', formData.clientId);
-          const clientSnap = await transaction.get(clientRef);
+        // 4. Update Client Credit if it's a sale to a client
+        if (formData.type === 'sale' && formData.clientId && clientRef && clientSnap) {
           if (clientSnap.exists()) {
             const currentCredit = clientSnap.data().totalCredit || 0;
-            const creditToAdd = totalAmount - (formData.amountPaid || 0);
+            const creditToAdd = totalAmount - (Number(formData.amountPaid) || 0);
             if (creditToAdd > 0) {
               transaction.update(clientRef, { totalCredit: currentCredit + creditToAdd });
             }
           }
 
           // Also record a payment if there was an upfront payment
-          if (formData.amountPaid && formData.amountPaid > 0) {
+          if (Number(formData.amountPaid) > 0) {
             const paymentRef = doc(collection(db, 'payments'));
             transaction.set(paymentRef, {
               clientId: formData.clientId,
               clientName: client?.name || '',
-              amount: formData.amountPaid,
+              amount: Number(formData.amountPaid),
               date: formData.exitDate,
               method: 'cash',
               notes: `Paiement initial pour la vente ${formData.exitNumber}`,
@@ -237,7 +248,7 @@ const StockExits: React.FC = () => {
           }
         }
 
-        // 4. Log Activity
+        // 5. Log Activity
         const logRef = doc(collection(db, 'logs'));
         transaction.set(logRef, {
           userId: profile.uid,
@@ -347,8 +358,8 @@ const StockExits: React.FC = () => {
                         <tr key={idx}>
                           <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{item.productName}</td>
                           <td className="px-4 py-3 text-center font-bold text-orange-600 dark:text-orange-400">-{item.quantity}</td>
-                          <td className="px-4 py-3 text-right dark:text-slate-300">{item.unitPrice.toLocaleString()} {t('common.currency')}</td>
-                          <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white">{(item.quantity * item.unitPrice).toLocaleString()} {t('common.currency')}</td>
+                          <td className="px-4 py-3 text-right dark:text-slate-300">{(Number(item.unitPrice) || 0).toLocaleString()} {t('common.currency')}</td>
+                          <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white">{(item.quantity * (Number(item.unitPrice) || 0)).toLocaleString()} {t('common.currency')}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -404,11 +415,54 @@ const StockExits: React.FC = () => {
                   <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-lg">
                     <Package size={20} className="text-primary" /> {t('stockExits.modal.itemsTitle', 'Articles à sortir')}
                   </h3>
-                  <button type="button" onClick={addItem} className="btn-primary py-2 px-4 text-sm flex items-center gap-2 shadow-md shadow-primary/20">
-                    <Plus size={16} /> {t('stockExits.modal.addItem', 'Ajouter un article')}
-                  </button>
                 </div>
                 
+                <div className="mb-6 relative">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <input
+                      type="text"
+                      placeholder={t('stockExits.modal.searchProduct', 'Rechercher et ajouter un produit...')}
+                      className="w-full pl-12 pr-4 py-3.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all font-medium text-lg"
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                    />
+                  </div>
+                  {productSearch && (
+                    <div className="absolute z-20 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl max-h-64 overflow-y-auto">
+                      {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()) && !formData.items.find(i => i.productId === p.id)).map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className="w-full text-left px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex justify-between items-center border-b border-slate-100 dark:border-slate-700/50 last:border-0 transition-colors"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              items: [...formData.items, { productId: p.id, productName: p.name, quantity: 1, unitPrice: p.salePrice === undefined ? '' as any : p.salePrice }]
+                            });
+                            setProductSearch('');
+                          }}
+                        >
+                          <div>
+                            <span className="font-bold text-slate-900 dark:text-white block">{p.name}</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">{p.reference}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm font-bold text-primary block">{p.salePrice?.toLocaleString()} {t('common.currency')}</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">Stock: {p.stockQuantity}</span>
+                          </div>
+                        </button>
+                      ))}
+                      {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()) && !formData.items.find(i => i.productId === p.id)).length === 0 && (
+                        <div className="px-6 py-8 text-slate-500 text-center flex flex-col items-center justify-center">
+                          <Package size={32} className="text-slate-300 dark:text-slate-600 mb-2" />
+                          <p>Aucun produit trouvé ou déjà ajouté</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-3">
                   {formData.items.map((item, index) => {
                     const product = products.find(p => p.id === item.productId);
@@ -418,17 +472,9 @@ const StockExits: React.FC = () => {
                       <div key={index} className={`grid grid-cols-1 md:grid-cols-12 gap-4 p-5 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border transition-all ${isStockInsufficient ? 'border-danger/50 bg-danger/5' : 'border-slate-200 dark:border-slate-700'}`}>
                         <div className="md:col-span-5 space-y-2">
                           <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.product', 'Produit')}</label>
-                          <select 
-                            required 
-                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-primary/20 transition-all"
-                            value={item.productId}
-                            onChange={(e) => updateItem(index, 'productId', e.target.value)}
-                          >
-                            <option value="">{t('stockExits.modal.selectProduct', 'Sélectionner un produit')}</option>
-                            {products.map(p => (
-                              <option key={p.id} value={p.id}>{p.name} ({t('stockExits.modal.stock', 'Stock')}: {p.stockQuantity})</option>
-                            ))}
-                          </select>
+                          <div className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-medium flex items-center h-[42px]">
+                            {item.productName}
+                          </div>
                         </div>
                         <div className="md:col-span-2 space-y-2">
                           <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.quantity', 'Quantité')}</label>
@@ -451,17 +497,17 @@ const StockExits: React.FC = () => {
                             min="0" 
                             required 
                             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-primary/20 transition-all"
-                            value={isNaN(item.unitPrice) ? '' : item.unitPrice}
+                            value={(item.unitPrice as any) === '' ? '' : (isNaN(item.unitPrice as any) ? '' : item.unitPrice)}
                             onChange={(e) => {
-                              const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                              updateItem(index, 'unitPrice', isNaN(val) ? 0 : val);
+                              const val = e.target.value;
+                              updateItem(index, 'unitPrice', val === '' ? '' as any : parseFloat(val));
                             }}
                           />
                         </div>
                         <div className="md:col-span-2 space-y-2">
                           <label className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('stockExits.modal.total', 'Total')}</label>
                           <div className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center h-[42px]">
-                            {(item.quantity * item.unitPrice).toLocaleString()}
+                            {(item.quantity * (Number(item.unitPrice) || 0)).toLocaleString()}
                           </div>
                         </div>
                         <div className="md:col-span-1 flex items-end justify-center pb-1">
@@ -481,7 +527,7 @@ const StockExits: React.FC = () => {
                   {formData.items.length === 0 && (
                     <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/30">
                       <Package size={32} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-                      <p>{t('stockExits.modal.noItems', 'Aucun article ajouté. Cliquez sur "Ajouter un article".')}</p>
+                      <p>{t('stockExits.modal.noItems', 'Aucun article ajouté. Recherchez et sélectionnez un produit ci-dessus.')}</p>
                     </div>
                   )}
                 </div>

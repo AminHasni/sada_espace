@@ -23,7 +23,7 @@ const Services: React.FC = () => {
   const dateLocale = i18n.language === 'ar' ? arDZ : fr;
 
   const [formData, setFormData] = useState({
-    price: 0,
+    price: '' as any,
     description: '',
     date: new Date().toISOString().split('T')[0],
   });
@@ -91,7 +91,7 @@ const Services: React.FC = () => {
       setIsModalOpen(false);
       setEditingService(null);
       setFormData({
-        price: 0,
+        price: '' as any,
         description: '',
         date: new Date().toISOString().split('T')[0],
       });
@@ -101,7 +101,7 @@ const Services: React.FC = () => {
   };
 
   const handleDelete = async (service: ServiceRecord) => {
-    if (profile?.role !== 'admin') return;
+    if (profile?.role !== 'admin' && profile?.role !== 'warehouseman') return;
     if (!window.confirm(t('common.deleteConfirm', 'Êtes-vous sûr de vouloir supprimer cet élément ?'))) return;
 
     try {
@@ -155,7 +155,7 @@ const Services: React.FC = () => {
             onClick={() => {
               setEditingService(null);
               setFormData({
-                price: 0,
+                price: '' as any,
                 description: '',
                 date: new Date().toISOString().split('T')[0],
               });
@@ -231,20 +231,20 @@ const Services: React.FC = () => {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       {profile?.role === 'admin' && (
-                        <>
-                          <button
-                            onClick={() => openEditModal(service)}
-                            className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-xl text-slate-400 hover:text-primary transition-all shadow-sm border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(service)}
-                            className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-xl text-slate-400 hover:text-danger transition-all shadow-sm border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </>
+                        <button
+                          onClick={() => openEditModal(service)}
+                          className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-xl text-slate-400 hover:text-primary transition-all shadow-sm border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                      )}
+                      {(profile?.role === 'admin' || profile?.role === 'warehouseman') && (
+                        <button
+                          onClick={() => handleDelete(service)}
+                          className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-xl text-slate-400 hover:text-danger transition-all shadow-sm border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       )}
                     </div>
                   </td>
@@ -289,10 +289,10 @@ const Services: React.FC = () => {
                     min="0"
                     step="0.01"
                     className="input-field dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                    value={isNaN(formData.price) ? '' : formData.price}
+                    value={formData.price === '' ? '' : (isNaN(formData.price as any) ? '' : formData.price)}
                     onChange={(e) => {
-                      const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                      setFormData({...formData, price: isNaN(val) ? 0 : val});
+                      const val = e.target.value;
+                      setFormData({...formData, price: val === '' ? '' as any : parseFloat(val)});
                     }}
                   />
                 </div>

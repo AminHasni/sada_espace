@@ -224,15 +224,14 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const totalStockValue = products.reduce((sum, p) => sum + (p.stockQuantity * p.purchasePrice), 0);
-  const totalPotentialRevenue = products.reduce((sum, p) => sum + (p.stockQuantity * p.salePrice), 0);
-  const lowStockCount = products.filter(p => p.stockQuantity <= p.minStockLevel).length;
+  const totalStockValue = products.reduce((sum, p) => sum + ((Number(p.stockQuantity) || 0) * (Number(p.purchasePrice) || 0)), 0);
+  const totalPotentialRevenue = products.reduce((sum, p) => sum + ((Number(p.stockQuantity) || 0) * (Number(p.salePrice) || 0)), 0);
+  const lowStockCount = products.filter(p => (Number(p.stockQuantity) || 0) <= (Number(p.minStockLevel) || 0)).length;
   const totalProducts = products.length;
-  const totalQuantity = products.reduce((sum, p) => sum + p.stockQuantity, 0);
 
   const stats = [
     { label: t('dashboard.stats.totalProducts'), value: totalProducts, icon: Package, color: 'bg-primary', iconColor: 'text-primary' },
-    { label: t('dashboard.stats.totalQuantity'), value: totalQuantity, icon: PackagePlus, color: 'bg-success', iconColor: 'text-success' },
+    { label: t('dashboard.stats.potentialRevenue', 'Valeur Stock (Vente)'), value: `${totalPotentialRevenue.toLocaleString()} ${t('common.currency')}`, icon: Wallet, color: 'bg-success', iconColor: 'text-success' },
     { label: t('dashboard.stats.stockValue'), value: `${totalStockValue.toLocaleString()} ${t('common.currency')}`, icon: TrendingUp, color: 'bg-accent', iconColor: 'text-accent' },
     { label: t('dashboard.stats.stockAlerts'), value: lowStockCount, icon: AlertTriangle, color: 'bg-danger', iconColor: 'text-danger' },
   ];

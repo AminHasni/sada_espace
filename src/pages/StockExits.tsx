@@ -219,17 +219,34 @@ const StockExits: React.FC = () => {
           });
 
           // Send low stock notification if below threshold
-          const minStock = productData.minStockLevel || 0;
-          if (newStock <= minStock) {
-            notifiedUsers.forEach(user => {
-              notificationService.sendNotification({
-                userId: user.uid,
-                title: 'Alerte Stock Faible',
-                message: `Le produit "${productData.name}" a atteint un niveau de stock faible (${newStock} restants).`,
-                type: 'warning',
-                link: `/stock?search=${encodeURIComponent(productData.name)}`
-              }).catch(err => console.error('Error sending low stock notification:', err));
-            });
+          if (updatedVariants) {
+            for (const variant of updatedVariants) {
+              const variantMinStock = variant.minStockLevel ?? productData.minStockLevel ?? 0;
+              if (variant.stockQuantity <= variantMinStock) {
+                notifiedUsers.forEach(user => {
+                  notificationService.sendNotification({
+                    userId: user.uid,
+                    title: 'Alerte Stock Faible',
+                    message: `La variante "${variant.name}" du produit "${productData.name}" a atteint un niveau de stock faible (${variant.stockQuantity} restants).`,
+                    type: 'warning',
+                    link: `/stock?search=${encodeURIComponent(productData.name)}`
+                  }).catch(err => console.error('Error sending low stock notification:', err));
+                });
+              }
+            }
+          } else {
+            const minStock = productData.minStockLevel || 0;
+            if (newStock <= minStock) {
+              notifiedUsers.forEach(user => {
+                notificationService.sendNotification({
+                  userId: user.uid,
+                  title: 'Alerte Stock Faible',
+                  message: `Le produit "${productData.name}" a atteint un niveau de stock faible (${newStock} restants).`,
+                  type: 'warning',
+                  link: `/stock?search=${encodeURIComponent(productData.name)}`
+                }).catch(err => console.error('Error sending low stock notification:', err));
+              });
+            }
           }
           
           // History records for each variant/item

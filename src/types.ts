@@ -55,6 +55,7 @@ export interface ProductVariant {
   name: string; // e.g., "Size: XL", "Color: Red"
   sku?: string;
   stockQuantity: number;
+  minStockLevel?: number;
   priceAdjustment?: number;
 }
 

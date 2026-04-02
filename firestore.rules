@@ -60,11 +60,8 @@ service cloud.firestore {
     match /products/{id} {
       allow read: if isAuthenticated() && isNotPaused();
       allow create: if (isAdmin() || isWarehouseman()) && isNotPaused();
-      allow update: if isNotPaused() && (
-        isAdmin() || 
-        (isWarehouseman() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stockQuantity']))
-      );
-      allow delete: if isAdmin() && isNotPaused();
+      allow update: if (isAdmin() || isWarehouseman()) && isNotPaused();
+      allow delete: if (isAdmin() || isWarehouseman()) && isNotPaused();
     }
     
     match /clients/{id} {

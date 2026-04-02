@@ -50,6 +50,7 @@ const Stock: React.FC = () => {
   const [newVariant, setNewVariant] = useState<Partial<ProductVariant>>({
     name: '',
     stockQuantity: '' as any,
+    minStockLevel: '' as any,
     priceAdjustment: '' as any
   });
 
@@ -116,7 +117,7 @@ const Stock: React.FC = () => {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (profile?.role !== 'admin') {
+    if (!['admin', 'warehouseman'].includes(profile?.role || '')) {
       alert(t('stock.permissionDenied'));
       return;
     }
@@ -143,13 +144,14 @@ const Stock: React.FC = () => {
       id: Date.now().toString(),
       name: newVariant.name,
       stockQuantity: variantStock,
+      minStockLevel: newVariant.minStockLevel || 0,
       priceAdjustment: newVariant.priceAdjustment || 0
     };
     setFormData({
       ...formData,
       variants: [...(formData.variants || []), variant]
     });
-    setNewVariant({ name: '', stockQuantity: '' as any, priceAdjustment: '' as any });
+    setNewVariant({ name: '', stockQuantity: '' as any, minStockLevel: '' as any, priceAdjustment: '' as any });
   };
 
   const handleRemoveVariant = (id: string) => {
@@ -167,7 +169,7 @@ const Stock: React.FC = () => {
   };
 
   const handleAnalyze = async () => {
-    if (profile?.role !== 'admin') return;
+    if (!['admin', 'warehouseman'].includes(profile?.role || '')) return;
     setIsAnalyzing(true);
     try {
       const result = await analyzeStock(products);
@@ -204,7 +206,7 @@ const Stock: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400 mt-1">{t('stock.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
-          {profile?.role === 'admin' && (
+          {['admin', 'warehouseman'].includes(profile?.role || '') && (
             <button
               onClick={handleAnalyze}
               disabled={isAnalyzing}
@@ -294,7 +296,9 @@ const Stock: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredProducts.map((product) => {
-                const isLowStock = product.stockQuantity <= product.minStockLevel;
+                const isLowStock = (product.variants && product.variants.length > 0) 
+                  ? product.variants.some(v => v.stockQuantity <= (v.minStockLevel ?? product.minStockLevel))
+                  : product.stockQuantity <= product.minStockLevel;
                 return (
                   <tr 
                     key={product.id} 
@@ -334,7 +338,7 @@ const Stock: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {profile?.role === 'admin' && (
+                        {['admin', 'warehouseman'].includes(profile?.role || '') && (
                           <button
                             onClick={() => handleOpenModal(product)}
                             className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
@@ -343,7 +347,7 @@ const Stock: React.FC = () => {
                             <Edit2 size={16} />
                           </button>
                         )}
-                        {profile?.role === 'admin' && (
+                        {['admin', 'warehouseman'].includes(profile?.role || '') && (
                           <button
                             onClick={() => handleDelete(product.id, product.name)}
                             className="p-2 text-slate-400 hover:text-danger hover:bg-danger/5 rounded-lg transition-all"
@@ -538,8 +542,8 @@ const Stock: React.FC = () => {
                   <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">{t('stock.form.optional')}</span>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                  <div className="md:col-span-1">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="md:col-span-2">
                     <input
                       type="text"
                       placeholder={t('stock.form.variantNamePlaceholder')}
@@ -552,13 +556,28 @@ const Stock: React.FC = () => {
                     <input
                       type="text"
                       inputMode="decimal"
-                      placeholder={t('stock.form.variantStockPlaceholder')}
+                      placeholder={t('stock.form.variantStockPlaceholder', 'Stock')}
                       className="input-field bg-white dark:bg-slate-800"
                       value={(newVariant.stockQuantity as any) === '' ? '' : newVariant.stockQuantity}
                       onChange={(e) => {
                         const val = e.target.value.replace(',', '.');
                         if (val === '' || !isNaN(Number(val)) || val === '.') {
                           setNewVariant({ ...newVariant, stockQuantity: val === '' ? '' as any : parseFloat(val) });
+                        }
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={t('stock.form.variantMinStockPlaceholder', 'Seuil')}
+                      className="input-field bg-white dark:bg-slate-800"
+                      value={(newVariant.minStockLevel as any) === '' ? '' : newVariant.minStockLevel}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(',', '.');
+                        if (val === '' || !isNaN(Number(val)) || val === '.') {
+                          setNewVariant({ ...newVariant, minStockLevel: val === '' ? '' as any : parseFloat(val) });
                         }
                       }}
                     />
@@ -578,14 +597,16 @@ const Stock: React.FC = () => {
                       }}
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleAddVariant}
-                    className="btn-secondary flex items-center justify-center gap-2 h-full"
-                  >
-                    <Plus size={16} />
-                    {t('stock.form.addVariant')}
-                  </button>
+                  <div className="md:col-span-5">
+                    <button
+                      type="button"
+                      onClick={handleAddVariant}
+                      className="btn-secondary w-full flex items-center justify-center gap-2 h-12"
+                    >
+                      <Plus size={16} />
+                      {t('stock.form.addVariant')}
+                    </button>
+                  </div>
                 </div>
  
                 <div className="space-y-2">
@@ -618,6 +639,22 @@ const Stock: React.FC = () => {
                                 const val = e.target.value.replace(',', '.');
                                 if (val === '' || !isNaN(Number(val)) || val === '.') {
                                   handleUpdateVariant(v.id, 'stockQuantity', val === '' ? 0 : parseFloat(val));
+                                }
+                              }}
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Seuil</label>
+                            <input 
+                              type="text"
+                              inputMode="decimal"
+                              className="w-24 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-bold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-primary/20 transition-all"
+                              value={v.minStockLevel ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(',', '.');
+                                if (val === '' || !isNaN(Number(val)) || val === '.') {
+                                  handleUpdateVariant(v.id, 'minStockLevel', val === '' ? 0 : parseFloat(val));
                                 }
                               }}
                             />

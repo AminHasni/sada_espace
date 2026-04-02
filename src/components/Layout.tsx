@@ -68,8 +68,8 @@ const Layout: React.FC = () => {
       <aside className="hidden lg:flex flex-col w-72 bg-white dark:bg-slate-900 sticky top-0 h-screen z-40 border-r border-slate-200 dark:border-slate-800">
         <div className="p-8 flex-1 overflow-y-auto">
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/10 overflow-hidden border border-slate-100 dark:border-slate-800">
-              <img src="/logo.png" alt="Espace Sada" className="w-full h-full object-contain p-1" />
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <Sparkles className="text-white w-6 h-6" />
             </div>
             <div>
               <h1 className="font-display font-bold text-lg leading-none text-slate-900 dark:text-white">Espace Sada</h1>
@@ -130,8 +130,8 @@ const Layout: React.FC = () => {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 z-50 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800">
-            <img src="/logo.png" alt="Espace Sada" className="w-full h-full object-contain p-0.5" />
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <Sparkles className="text-white w-4 h-4" />
           </div>
           <span className="font-display font-bold text-base text-slate-900 dark:text-white">Espace Sada</span>
         </div>

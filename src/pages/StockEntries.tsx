@@ -447,7 +447,15 @@ const StockEntries: React.FC = () => {
                               } else {
                                 setFormData({
                                   ...formData,
-                                  items: [...formData.items, { productId: p.id, productName: p.name, quantity: 1, unitPrice: p.purchasePrice || 0, batchNumber: '', expiryDate: '' }]
+                                  items: [...formData.items, { 
+                                    productId: p.id, 
+                                    productName: p.name, 
+                                    category: p.category,
+                                    quantity: 1, 
+                                    unitPrice: p.purchasePrice || 0, 
+                                    batchNumber: '', 
+                                    expiryDate: '' 
+                                  }]
                                 });
                                 setProductSearch('');
                               }
@@ -522,6 +530,7 @@ const StockEntries: React.FC = () => {
                                   newItems.push({
                                     productId: variantPickerProduct.id,
                                     productName: variantPickerProduct.name,
+                                    category: variantPickerProduct.category,
                                     variantId: vId,
                                     variantName: variant?.name,
                                     quantity: qty,

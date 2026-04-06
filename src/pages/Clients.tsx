@@ -1,24 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDocs } from 'firebase/firestore';
 import { useTranslation } from 'react-i18next';
 import { db } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
-import { Client, Payment } from '../types';
-import { Plus, Search, Edit2, Trash2, Phone, Mail, MapPin, X, Receipt, User, Wallet } from 'lucide-react';
+import { Client, Payment, StockExit } from '../types';
+import { Plus, Search, Edit2, Trash2, Phone, Mail, MapPin, X, Receipt, User, Wallet, FileText, Calendar, Download } from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
 import { logActivity } from '../services/activity';
 import { cn } from '../lib/utils';
+import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { generateClientCreditReport } from '../utils/pdfGenerator';
 
 const Clients: React.FC = () => {
   const { profile } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [reportLoading, setReportLoading] = useState(false);
+
+  const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
 
   const [formData, setFormData] = useState<Partial<Client>>({
     name: '',
@@ -77,6 +84,13 @@ const Clients: React.FC = () => {
     setIsPaymentModalOpen(true);
   };
 
+  const handleOpenReportModal = (client: Client) => {
+    setSelectedClient(client);
+    setStartDate(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+    setEndDate(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+    setIsReportModalOpen(true);
+  };
+
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile || !selectedClient) return;
@@ -108,13 +122,81 @@ const Clients: React.FC = () => {
     }
   };
 
+  const generatePDFReport = async () => {
+    if (!selectedClient || !profile) return;
+    setReportLoading(true);
+    try {
+      const exitsQuery = query(collection(db, 'stock_exits'), orderBy('exitDate', 'desc'));
+      const paymentsQuery = query(collection(db, 'payments'), orderBy('date', 'desc'));
+
+      const [exitsSnap, paymentsSnap] = await Promise.all([
+        getDocs(exitsQuery),
+        getDocs(paymentsQuery)
+      ]);
+
+      const allExits = exitsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StockExit[];
+      const allPayments = paymentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Payment[];
+
+      const start = parseISO(startDate);
+      const end = parseISO(endDate);
+
+      const filteredExits = allExits.filter(exit => {
+        const date = parseISO(exit.exitDate);
+        return exit.clientId === selectedClient.id && isWithinInterval(date, { start, end });
+      });
+
+      const filteredPayments = allPayments.filter(payment => {
+        const date = parseISO(payment.date);
+        return payment.clientId === selectedClient.id && isWithinInterval(date, { start, end });
+      });
+
+      const transactions = [
+        ...filteredExits.map(e => ({
+          date: e.exitDate,
+          type: 'credit',
+          amount: (e.totalAmount || 0) - (e.amountPaid || 0),
+          ref: e.exitNumber,
+          items: e.items,
+          serviceName: e.serviceName,
+          performedByName: e.performedByName
+        })),
+        ...filteredPayments.map(p => ({
+          date: p.date,
+          type: 'payment',
+          amount: p.amount,
+          ref: 'PAY-' + p.id?.slice(-4),
+          performedByName: p.performedByName
+        }))
+      ].sort((a, b) => a.date.localeCompare(b.date));
+
+      const totalCredit = filteredExits.reduce((sum, e) => sum + ((e.totalAmount || 0) - (e.amountPaid || 0)), 0);
+      const totalPaid = filteredPayments.reduce((sum, p) => sum + p.amount, 0);
+
+      await generateClientCreditReport(
+        selectedClient,
+        startDate,
+        endDate,
+        transactions,
+        { totalCredit, totalPaid },
+        t,
+        i18n.language
+      );
+
+      setIsReportModalOpen(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, 'reports');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (profile?.role !== 'admin' && profile?.role !== 'warehouseman') return;
 
     try {
       if (editingClient) {
-        await updateDoc(doc(db, 'clients', editingClient.id), formData);
+        await updateDoc(doc(db, 'clients', editingClient.id!), formData);
         if (profile) await logActivity(profile.uid, profile.displayName, 'client_update', t('activity.clientUpdate', { name: formData.name }));
       } else {
         await addDoc(collection(db, 'clients'), {
@@ -260,6 +342,15 @@ const Clients: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {profile?.role === 'admin' && (
+                          <button
+                            onClick={() => handleOpenReportModal(client)}
+                            className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
+                            title={t('creditReports.generate')}
+                          >
+                            <FileText size={16} />
+                          </button>
+                        )}
                         {(profile?.role === 'admin' || profile?.role === 'warehouseman') && (
                           <button
                             onClick={() => handleOpenPaymentModal(client)}
@@ -521,8 +612,70 @@ const Clients: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Report Modal */}
+      {isReportModalOpen && selectedClient && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsReportModalOpen(false)}></div>
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+              <div>
+                <h2 className="text-xl font-display font-bold text-slate-900 dark:text-white">
+                  {t('creditReports.title')}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{selectedClient.name}</p>
+              </div>
+              <button onClick={() => setIsReportModalOpen(false)} className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-colors shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+                <X size={20} className="dark:text-slate-400" />
+              </button>
+            </div>
+
+            <div className="p-8 space-y-6">
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('creditReports.startDate')}</label>
+                  <input
+                    type="date"
+                    className="input-field"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('creditReports.endDate')}</label>
+                  <input
+                    type="date"
+                    className="input-field"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="flex-1 btn-secondary py-3"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={generatePDFReport}
+                  disabled={reportLoading}
+                  className="flex-[2] btn-primary py-3 shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {reportLoading ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : <Download size={18} />}
+                  {t('creditReports.generate')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default Clients;
+

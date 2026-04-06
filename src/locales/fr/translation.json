@@ -10,6 +10,7 @@
     "services": "Services",
     "users": "Utilisateurs",
     "reclamations": "Réclamations",
+    "creditReports": "Rapports de Crédits",
     "profile": "Mon Profil",
     "logout": "Déconnexion"
   },
@@ -26,6 +27,12 @@
     "status": "Statut",
     "date": "Date",
     "dateHeure": "Date & Heure",
+    "category": "Catégorie",
+    "product": "Produit",
+    "quantity": "Quantité",
+    "totalCost": "Coût Total",
+    "unitPrice": "P.U",
+    "signature": "Signature & Cachet",
     "productsCategories": "Produits & Catégories",
     "service": "Service",
     "amount": "Montant",
@@ -38,12 +45,15 @@
     "theme": "Thème",
     "language": "Langue",
     "period": "Période",
+    "generatedAt": "Généré le",
     "na": "N/A",
     "credit": "Crédit",
     "allCategories": "Toutes les catégories",
     "exportCSV": "Exporter CSV",
     "description": "Description",
-    "price": "Prix"
+    "details": "Détails",
+    "price": "Prix",
+    "user": "Magasinier"
   },
   "dashboard": {
     "welcome": "Bonjour, {{name}} 👋",
@@ -400,6 +410,32 @@
     },
     "deleteConfirm": "Supprimer cette dépense de {{amount}} DT ?",
     "noExpenses": "Aucune dépense enregistrée."
+  },
+  "creditReports": {
+    "title": "Rapports de Crédits Clients",
+    "subtitle": "Générez des rapports détaillés sur les crédits et paiements par période.",
+    "selectPeriod": "Sélectionner la période",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "generate": "Générer le rapport",
+    "exportPDF": "Exporter en PDF",
+    "summary": "Résumé de la période",
+    "totalSales": "Ventes à crédit",
+    "totalPayments": "Paiements reçus",
+    "netBalance": "Solde net",
+    "clientDetails": "Détails par client",
+    "noData": "Aucune donnée trouvée pour cette période.",
+    "charts": {
+      "creditVsPayment": "Crédits vs Paiements",
+      "topDebtors": "Principaux débiteurs"
+    },
+    "table": {
+      "client": "Client",
+      "date": "Date",
+      "type": "Type",
+      "amount": "Montant",
+      "reference": "Référence"
+    }
   },
   "services": {
     "title": "Services",

@@ -9,6 +9,8 @@
     "expenses": "المصاريف",
     "services": "الخدمات",
     "users": "المستخدمون",
+    "reclamations": "الشكاوى",
+    "creditReports": "تقارير الديون",
     "profile": "ملفي الشخصي",
     "logout": "تسجيل الخروج"
   },
@@ -25,6 +27,12 @@
     "status": "الحالة",
     "date": "التاريخ",
     "dateHeure": "التاريخ والوقت",
+    "category": "الفئة",
+    "product": "المنتج",
+    "quantity": "الكمية",
+    "totalCost": "التكلفة الإجمالية",
+    "unitPrice": "سعر الوحدة",
+    "signature": "التوقيع والختم",
     "productsCategories": "المنتجات والفئات",
     "service": "الخدمة",
     "amount": "المبلغ",
@@ -39,13 +47,16 @@
     "filter": "تصفية",
     "all": "الكل",
     "period": "الفترة",
+    "generatedAt": "تم الإنشاء في",
     "permissionDenied": "وصول مرفوض",
     "na": "غير متوفر",
     "credit": "الائتمان",
     "allCategories": "جميع الفئات",
     "exportCSV": "تصدير CSV",
     "description": "الوصف",
-    "price": "السعر"
+    "details": "التفاصيل",
+    "price": "السعر",
+    "user": "أمين المخزن"
   },
   "dashboard": {
     "welcome": "مرحباً، {{name}} 👋",
@@ -518,6 +529,32 @@
     "exportCSV": "تصدير تقرير",
     "searchPlaceholder": "البحث حسب الوصف أو الفئة...",
     "noExpenses": "لا توجد مصاريف مسجلة.",
+    "creditReports": {
+      "title": "تقارير ديون الزبائن",
+      "subtitle": "إنشاء تقارير مفصلة عن الديون والمدفوعات حسب الفترة.",
+      "selectPeriod": "اختر الفترة",
+      "startDate": "تاريخ البدء",
+      "endDate": "تاريخ الانتهاء",
+      "generate": "إنشاء التقرير",
+      "exportPDF": "تصدير بصيغة PDF",
+      "summary": "ملخص الفترة",
+      "totalSales": "المبيعات بالدين",
+      "totalPayments": "المدفوعات المستلمة",
+      "netBalance": "الرصيد الصافي",
+      "clientDetails": "تفاصيل حسب الزبون",
+      "noData": "لم يتم العثور على بيانات لهذه الفترة.",
+      "charts": {
+        "creditVsPayment": "الديون مقابل المدفوعات",
+        "topDebtors": "أكبر المدينين"
+      },
+      "table": {
+        "client": "الزبون",
+        "date": "التاريخ",
+        "type": "النوع",
+        "amount": "المبلغ",
+        "reference": "المرجع"
+      }
+    },
     "recordedBy": "سجل من قبل: {{name}}",
     "table": {
       "description": "الوصف",

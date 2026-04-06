@@ -72,7 +72,7 @@ const Layout: React.FC = () => {
               <Sparkles className="text-white w-6 h-6" />
             </div>
             <div>
-              <h1 className="font-display font-bold text-lg leading-none text-slate-900 dark:text-white">Espace Sada</h1>
+              <h1 className="font-display font-bold text-lg leading-none text-slate-900 dark:text-white">Espace Sadaa</h1>
             </div>
           </div>
 
@@ -133,7 +133,7 @@ const Layout: React.FC = () => {
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <Sparkles className="text-white w-4 h-4" />
           </div>
-          <span className="font-display font-bold text-base text-slate-900 dark:text-white">Espace Sada</span>
+          <span className="font-display font-bold text-base text-slate-900 dark:text-white">Espace Sadaa</span>
         </div>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />

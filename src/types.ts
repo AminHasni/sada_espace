@@ -117,6 +117,7 @@ export interface Supplier {
 export interface StockEntryItem {
   productId: string;
   productName: string;
+  category?: string;
   variantId?: string;
   variantName?: string;
   quantity: number;
@@ -145,6 +146,7 @@ export interface StockEntry {
 export interface StockExitItem {
   productId: string;
   productName: string;
+  category?: string;
   variantId?: string;
   variantName?: string;
   quantity: number;

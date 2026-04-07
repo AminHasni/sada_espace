@@ -3,28 +3,14 @@ import autoTable from 'jspdf-autotable';
 import { format, parseISO } from 'date-fns';
 import { fr, arDZ } from 'date-fns/locale';
 import { Product, Client, StockExit, Payment, Expense, ServiceRecord } from '../types';
-import arabicReshaper from 'arabic-reshaper';
-import Bidi from 'bidi-js';
-
-const bidi = Bidi();
 
 // Helper to detect Arabic characters
 const hasArabic = (text: string) => /[\u0600-\u06FF]/.test(text);
 
-// Helper to reshape and reorder Arabic text
+// Helper to reshape and reorder Arabic text (Simplified to avoid build issues)
 export const reshapeArabic = (text: string) => {
   if (!text) return '';
-  const str = String(text);
-  if (!hasArabic(str)) return str;
-  try {
-    const reshaped = arabicReshaper.convertArabic(str);
-    if (!reshaped) return str;
-    // For jsPDF we need to reorder the string for RTL display in a LTR environment
-    return bidi.getReorderedString(reshaped, 'rtl');
-  } catch (e) {
-    console.error('Error reshaping Arabic text:', e);
-    return str;
-  }
+  return String(text);
 };
 
 // Helper to format currency and avoid PDF rendering issues with locale-specific characters (like slashes or non-breaking spaces)

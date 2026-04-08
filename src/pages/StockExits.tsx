@@ -255,8 +255,8 @@ const StockExits: React.FC = () => {
             transaction.set(historyRef, {
               productId: item.productId,
               productName: item.productName,
-              variantId: item.variantId,
-              variantName: item.variantName,
+              variantId: item.variantId || null,
+              variantName: item.variantName || null,
               type: 'exit',
               quantity: item.quantity,
               previousStock: currentStock, // This is slightly simplified for multi-item products
@@ -274,8 +274,15 @@ const StockExits: React.FC = () => {
         const client = clients.find(c => c.id === formData.clientId);
         const totalAmount = formData.items.reduce((sum, item) => sum + (item.quantity * (Number(item.unitPrice) || 0)), 0);
         
+        const sanitizedItems = formData.items.map(item => ({
+          ...item,
+          variantId: item.variantId || null,
+          variantName: item.variantName || null,
+        }));
+        
         const exitData = {
           ...formData,
+          items: sanitizedItems,
           totalAmount,
           clientName: client?.name || '',
           performedBy: profile.uid,

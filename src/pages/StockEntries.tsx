@@ -183,8 +183,8 @@ const StockEntries: React.FC = () => {
               transaction.set(historyRef, {
                 productId: item.productId,
                 productName: item.productName,
-                variantId: item.variantId,
-                variantName: item.variantName,
+                variantId: item.variantId || null,
+                variantName: item.variantName || null,
                 type: 'entry',
                 quantity: item.quantity,
                 previousStock: currentStock,
@@ -200,8 +200,15 @@ const StockEntries: React.FC = () => {
         }
 
         // 3. Create Stock Entry
+        const sanitizedItems = formData.items.map(item => ({
+          ...item,
+          variantId: item.variantId || null,
+          variantName: item.variantName || null,
+        }));
+
         const entryData = {
           ...formData,
+          items: sanitizedItems,
           receivedBy: profile.uid,
           receivedByName: profile.displayName,
           createdAt: new Date().toISOString()

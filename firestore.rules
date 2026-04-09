@@ -128,6 +128,13 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && (isAdmin() || isWarehouseman()) && isNotPaused();
     }
 
+    match /cash_sessions/{id} {
+      allow read: if isAuthenticated() && isNotPaused() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isNotPaused() && (isAdmin() || isWarehouseman()) && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && isNotPaused() && (isAdmin() || (resource.data.userId == request.auth.uid && resource.data.status == 'open'));
+      allow delete: if isAdmin();
+    }
+
     match /reclamations/{id} {
       allow read: if isAuthenticated() && isNotPaused() && (isAdmin() || request.auth.uid == resource.data.submittedBy);
       allow create: if isAuthenticated() && isNotPaused() && request.auth.uid == request.resource.data.submittedBy;

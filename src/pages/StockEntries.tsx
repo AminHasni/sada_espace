@@ -7,7 +7,9 @@ import {
   doc, 
   query, 
   orderBy,
-  runTransaction
+  runTransaction,
+  where,
+  limit
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../components/AuthProvider';
@@ -45,6 +47,7 @@ const StockEntries: React.FC = () => {
   const [listCategoryFilter, setListCategoryFilter] = useState('');
   const [variantPickerProduct, setVariantPickerProduct] = useState<Product | null>(null);
   const [variantQuantities, setVariantQuantities] = useState<Record<string, number>>({});
+  const [currentSession, setCurrentSession] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
@@ -73,9 +76,24 @@ const StockEntries: React.FC = () => {
       setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[]);
     });
 
+    const qSession = query(
+      collection(db, 'cash_sessions'),
+      where('userId', '==', profile.uid),
+      where('status', '==', 'open'),
+      limit(1)
+    );
+    const unsubscribeSession = onSnapshot(qSession, (snapshot) => {
+      if (!snapshot.empty) {
+        setCurrentSession({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as any);
+      } else {
+        setCurrentSession(null);
+      }
+    });
+
     return () => {
       unsubscribeEntries();
       unsubscribeProducts();
+      unsubscribeSession();
     };
   }, [profile]);
 
@@ -255,9 +273,21 @@ const StockEntries: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400">{t('stockEntries.subtitle')}</p>
         </div>
         {(profile?.role === 'admin' || profile?.role === 'warehouseman') && (
-          <button onClick={handleOpenModal} className="btn-primary flex items-center gap-2">
-            <Plus size={20} /> {t('stockEntries.newReception')}
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            <button 
+              onClick={handleOpenModal} 
+              disabled={!currentSession}
+              className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!currentSession ? "Veuillez ouvrir une session de caisse d'abord" : ""}
+            >
+              <Plus size={20} /> {t('stockEntries.newReception')}
+            </button>
+            {!currentSession && (
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                Caisse non ouverte
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -434,7 +464,7 @@ const StockEntries: React.FC = () => {
                 </div>
 
                   <div className="relative">
-                    {productSearch && (
+                    {(productSearch || selectedCategory) && (
                       <div className="absolute z-20 w-full -mt-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl max-h-64 overflow-y-auto">
                         {products.filter(p => 
                           (p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.reference.toLowerCase().includes(productSearch.toLowerCase())) && 
@@ -465,6 +495,7 @@ const StockEntries: React.FC = () => {
                                   }]
                                 });
                                 setProductSearch('');
+                                setSelectedCategory('');
                               }
                             }}
                           >
@@ -556,6 +587,7 @@ const StockEntries: React.FC = () => {
                               }
                               setVariantPickerProduct(null);
                               setProductSearch('');
+                              setSelectedCategory('');
                             }}
                             className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md shadow-primary/20"
                           >

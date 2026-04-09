@@ -4,6 +4,7 @@
     "stock": "Inventaire",
     "stockEntries": "Entrées Stock",
     "stockExits": "Sorties Stock",
+    "cashRegister": "Caisse",
     "suppliers": "Fournisseurs",
     "clients": "Clients & Crédits",
     "expenses": "Dépenses",
@@ -55,7 +56,37 @@
     "price": "Prix",
     "user": "Magasinier"
   },
+  "cashRegister": {
+    "openSession": "Ouvrir la caisse",
+    "openSessionDesc": "Veuillez entrer le montant initial (fond de caisse) pour commencer votre journée de travail.",
+    "initialAmount": "Montant initial (DT) *",
+    "notes": "Notes (Optionnel)",
+    "startWork": "Commencer le travail",
+    "sessionOpen": "Caisse Ouverte",
+    "sessionOpenDesc": "Votre session de caisse est actuellement ouverte.",
+    "openedAt": "Ouverte à",
+    "closeSession": "Clôturer la caisse",
+    "finalAmount": "Montant final en caisse (DT) *",
+    "submitClose": "Clôturer la session",
+    "history": {
+      "title": "Historique des Sessions de Caisse",
+      "subtitle": "Suivi des montants initiaux et de clôture par magazinier.",
+      "magasinier": "Magasinier",
+      "opened": "Ouverte",
+      "closed": "Clôturée",
+      "initial": "Initial",
+      "final": "Final",
+      "status": "Statut",
+      "open": "Ouverte",
+      "closedStatus": "Clôturée"
+    }
+  },
   "dashboard": {
+    "cashWarning": {
+      "title": "Caisse non ouverte",
+      "desc": "Vous n'avez pas encore ouvert de session de caisse. Veuillez ouvrir votre caisse pour commencer à enregistrer des transactions.",
+      "button": "Ouvrir la caisse"
+    },
     "welcome": "Bonjour, {{name}} 👋",
     "subtitle": "Voici ce qui se passe dans votre entreprise aujourd'hui.",
     "todayDate": "Date d'aujourd'hui",
@@ -77,10 +108,10 @@
     "financialOverview": "Gestion Financière",
     "revenueTrend": "Évolution des Recettes",
     "financials": {
-      "totalSales": "Ventes Totales",
+      "totalSales": "Ventes Normales",
+      "totalCreditSales": "Ventes par Crédit",
       "paymentsReceived": "Paiements Reçus",
       "totalServices": "Total Services",
-      "outstandingCredits": "Crédits en Cours",
       "totalExpenses": "Dépenses Totales",
       "netProfit": "Recette Nette"
     },
@@ -100,6 +131,10 @@
       "sales": "Détail des Ventes",
       "expenses": "Détail des Dépenses",
       "payments": "Détail des Paiements",
+      "services": "Détail des Services",
+      "credits": "Détail des Crédits",
+      "dailyReport": "Rapport Journalier",
+      "dailyReportDesc": "Toutes les transactions et crédits du jour.",
       "footer": "Page {{page}} sur {{total}}"
     }
   },
@@ -239,7 +274,7 @@
     "alreadyHaveAccount": "Déjà un compte ? Se connecter",
     "noAccount": "Pas encore de compte ? S'inscrire",
     "heroTitle": "Gérez votre stock et vos crédits avec élégance.",
-    "heroSubtitle": "Une solution moderne, rapide et intelligente pour les commerçants tunisiens. Suivez chaque Dinar avec précision.",
+    "heroSubtitle": "Une solution moderne, rapide et intelligente pour les commerçants tunisiens. Suivez chaque DT avec précision.",
     "secure": "Sécurisé",
     "aiAnalysis": "Analyses Intelligentes"
   },

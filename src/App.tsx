@@ -13,6 +13,7 @@ import Users from './pages/Users';
 import Expenses from './pages/Expenses';
 import Services from './pages/Services';
 import Reclamations from './pages/Reclamations';
+import CashRegister from './pages/CashRegister';
 import LoginPage from './pages/LoginPage';
 import { Sparkles } from 'lucide-react';
 
@@ -47,6 +48,7 @@ export default function App() {
               <Route path="expenses" element={<Expenses />} />
               <Route path="services" element={<Services />} />
               <Route path="reclamations" element={<Reclamations />} />
+              <Route path="cash-register" element={<CashRegister />} />
               <Route path="profile" element={<Profile />} />
               <Route path="users" element={<Users />} />
             </Route>

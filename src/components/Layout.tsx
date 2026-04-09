@@ -47,6 +47,7 @@ const Layout: React.FC = () => {
     { to: '/stock', icon: Package, labelKey: 'nav.stock', roles: ['admin', 'warehouseman'] },
     { to: '/stock-entries', icon: FileDown, labelKey: 'nav.stockEntries', roles: ['admin', 'warehouseman'] },
     { to: '/stock-exits', icon: FileUp, labelKey: 'nav.stockExits', roles: ['admin', 'warehouseman'] },
+    { to: '/cash-register', icon: Wallet, labelKey: 'nav.cashRegister', roles: ['admin', 'warehouseman'] },
     { to: '/suppliers', icon: Truck, labelKey: 'nav.suppliers', roles: ['admin', 'warehouseman'] },
     { to: '/clients', icon: Users, labelKey: 'nav.clients', roles: ['admin', 'warehouseman'] },
     { to: '/expenses', icon: Wallet, labelKey: 'nav.expenses', roles: ['admin', 'warehouseman'] },

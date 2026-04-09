@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, writeBatch } from 'firebase/firestore';
 import { useTranslation } from 'react-i18next';
 import { db } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
@@ -32,7 +32,7 @@ const Stock: React.FC = () => {
     purchasePrice: '' as any,
     salePrice: '' as any,
     stockQuantity: '' as any,
-    minStockLevel: 5,
+    minStockLevel: 1,
     unit: 'unité',
     variants: []
   });
@@ -81,7 +81,7 @@ const Stock: React.FC = () => {
         purchasePrice: '' as any,
         salePrice: '' as any,
         stockQuantity: '' as any,
-        minStockLevel: 5,
+        minStockLevel: 1,
         unit: 'unité',
         variants: []
       });

@@ -78,6 +78,8 @@ const fetchFontAsBase64 = async (urls: string[]): Promise<string> => {
 interface ReportData {
   dateRange: { start: string; end: string };
   totalSales: number;
+  totalCreditSales: number;
+  totalDiscounts: number;
   totalPayments: number;
   totalExpenses: number;
   totalServices: number;
@@ -89,6 +91,7 @@ interface ReportData {
   services: ServiceRecord[];
   products: Product[];
   language: string;
+  isDaily?: boolean;
 }
 
 // --- SHARED VISUAL COMPONENTS ---
@@ -201,7 +204,9 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
 
   // --- REPORT GENERATION ---
 
-  const title = t('dashboard.report.title', "Rapport d'Activité");
+  const title = data.isDaily 
+    ? t('dashboard.report.dailyReport', 'Rapport Journalier')
+    : t('dashboard.report.title', "Rapport d'Activité");
   let currentY = drawHeader(doc, 10, title, isArabicUI, formatText, getFont);
 
   // Period Info
@@ -236,7 +241,9 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
   currentY += 5;
 
   const keyStats = [
-    { label: t('dashboard.financials.totalSales', 'Ventes'), value: `${formatCurrency(data.totalSales)} DT`, color: [239, 246, 255], textColor: [37, 99, 235], borderColor: [191, 219, 254] },
+    { label: t('dashboard.financials.totalSales', 'Ventes Normales'), value: `${formatCurrency(data.totalSales)} DT`, color: [239, 246, 255], textColor: [37, 99, 235], borderColor: [191, 219, 254] },
+    { label: t('dashboard.financials.totalCreditSales', 'Ventes par Crédit'), value: `${formatCurrency(data.totalCreditSales)} DT`, color: [255, 247, 237], textColor: [249, 115, 22], borderColor: [255, 237, 213] },
+    { label: t('dashboard.financials.totalDiscounts', 'Remises'), value: `${formatCurrency(data.totalDiscounts)} DT`, color: [254, 242, 242], textColor: [220, 38, 38], borderColor: [254, 202, 202] },
     { label: t('dashboard.financials.paymentsReceived', 'Paiements'), value: `${formatCurrency(data.totalPayments)} DT`, color: [240, 253, 244], textColor: [22, 163, 74], borderColor: [187, 247, 208] },
     { label: t('dashboard.financials.totalExpenses', 'Dépenses'), value: `${formatCurrency(data.totalExpenses)} DT`, color: [254, 242, 242], textColor: [220, 38, 38], borderColor: [254, 202, 202] },
     { label: t('dashboard.financials.totalServices', 'Services'), value: `${formatCurrency(data.totalServices)} DT`, color: [245, 243, 255], textColor: [124, 58, 237], borderColor: [221, 214, 254] },
@@ -457,6 +464,120 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
             if (data.section === 'head' && !isArabicUI) {
               data.cell.styles.fontStyle = 'normal';
             }
+          }
+        }
+      }
+    });
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // Credits Table (Detailed)
+  const creditExits = data.stockExits.filter(e => e.paymentStatus === 'credit');
+  if (creditExits.length > 0) {
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+    const creditsTitle = formatText(t('dashboard.report.credits', 'Détails des Crédits'));
+    doc.setFont(getFont(creditsTitle), getFont(creditsTitle) === 'ArabicFont' ? 'normal' : 'bold');
+    doc.setFontSize(14);
+    if (isArabicUI) doc.text(creditsTitle, 196, currentY, { align: 'right' });
+    else doc.text(creditsTitle, 14, currentY);
+
+    const creditRows: string[][] = [];
+    creditExits.forEach(exit => {
+      exit.items.forEach(item => {
+        const rawDate = exit.createdAt || exit.exitDate;
+        creditRows.push([
+          rawDate ? format(parseISO(rawDate), isFrench ? 'EEEE dd MMMM yyyy HH:mm' : 'dd MMMM yyyy HH:mm', { locale: dateLocale }) : '-',
+          exit.clientName || '-',
+          item.productName,
+          item.quantity.toString(),
+          `${formatCurrency(item.quantity * item.unitPrice)} DT`
+        ].map(formatText));
+      });
+    });
+
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [[
+        t('common.dateHeure', 'Date & Heure'),
+        t('clients.form.name', 'Client'),
+        t('common.product', 'Produit'),
+        t('common.quantity', 'Quantité'),
+        t('common.total', 'Total')
+      ].map(formatText)],
+      body: creditRows,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [243, 244, 246], 
+        textColor: [31, 41, 55], 
+        font: 'helvetica', 
+        fontStyle: 'bold',
+        halign: isArabicUI ? 'right' : 'left'
+      },
+      styles: { 
+        font: 'helvetica', 
+        fontSize: 9, 
+        halign: isArabicUI ? 'right' : 'left' 
+      },
+      didParseCell: (data) => {
+        if (fontLoaded) {
+          const cellText = data.cell.text.join(' ');
+          if (isArabicUI || hasArabic(cellText)) {
+            data.cell.styles.font = 'ArabicFont';
+          }
+        }
+      }
+    });
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // Payments Table (Detailed)
+  if (data.payments.length > 0) {
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+    const paymentsTitle = formatText(t('dashboard.report.payments', 'Détail des Paiements'));
+    doc.setFont(getFont(paymentsTitle), getFont(paymentsTitle) === 'ArabicFont' ? 'normal' : 'bold');
+    doc.setFontSize(14);
+    if (isArabicUI) doc.text(paymentsTitle, 196, currentY, { align: 'right' });
+    else doc.text(paymentsTitle, 14, currentY);
+
+    const paymentRows = data.payments.map(pay => {
+      const rawDate = pay.createdAt || pay.date;
+      return [
+        rawDate ? format(parseISO(rawDate), isFrench ? 'EEEE dd MMMM yyyy HH:mm' : 'dd MMMM yyyy HH:mm', { locale: dateLocale }) : '-',
+        pay.clientName || '-',
+        `${formatCurrency(pay.amount)} DT`,
+        pay.method || '-',
+        pay.performedByName || '-'
+      ].map(formatText);
+    });
+
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [[
+        t('common.dateHeure', 'Date & Heure'),
+        t('clients.table.client', 'Client'),
+        t('common.amount', 'Montant'),
+        t('clients.form.method', 'Méthode'),
+        t('common.user', 'Magasinier')
+      ].map(formatText)],
+      body: paymentRows,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [243, 244, 246], 
+        textColor: [31, 41, 55], 
+        font: 'helvetica', 
+        fontStyle: 'bold',
+        halign: isArabicUI ? 'right' : 'left'
+      },
+      styles: { 
+        font: 'helvetica', 
+        fontSize: 9, 
+        halign: isArabicUI ? 'right' : 'left' 
+      },
+      didParseCell: (data) => {
+        if (fontLoaded) {
+          const cellText = data.cell.text.join(' ');
+          if (isArabicUI || hasArabic(cellText)) {
+            data.cell.styles.font = 'ArabicFont';
           }
         }
       }

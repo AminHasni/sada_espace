@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
-import { Product, Client, StockExit, Payment, Expense, ServiceRecord } from '../types';
+import { Product, Client, StockExit, Payment, Expense, ServiceRecord, CashSession } from '../types';
 import { useAuth } from '../components/AuthProvider';
 import { 
   Package, 
@@ -55,6 +55,7 @@ const Dashboard: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [services, setServices] = useState<ServiceRecord[]>([]);
+  const [currentSession, setCurrentSession] = useState<CashSession | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<{ type: 'stock' | 'credit', content: string } | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -106,6 +107,22 @@ const Dashboard: React.FC = () => {
       handleFirestoreError(error, OperationType.GET, 'services');
     });
 
+    const qSession = query(
+      collection(db, 'cash_sessions'),
+      where('userId', '==', profile.uid),
+      where('status', '==', 'open'),
+      limit(1)
+    );
+    const unsubSession = onSnapshot(qSession, (snap) => {
+      if (!snap.empty) {
+        setCurrentSession({ id: snap.docs[0].id, ...snap.docs[0].data() } as CashSession);
+      } else {
+        setCurrentSession(null);
+      }
+    }, (error) => {
+      console.error("Error fetching cash session:", error);
+    });
+
     return () => {
       unsubProducts();
       unsubClients();
@@ -113,6 +130,7 @@ const Dashboard: React.FC = () => {
       unsubPayments();
       unsubExpenses();
       unsubServices();
+      unsubSession();
     };
   }, [profile]);
 
@@ -154,17 +172,21 @@ const Dashboard: React.FC = () => {
     const periodExpenses = expenses.filter(filterByDate);
     const periodServices = services.filter(filterByDate);
 
-    const totalSales = periodSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
-    const totalPayments = periodPayments.reduce((sum, p) => sum + p.amount, 0);
-    const totalExpenses = periodExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalServices = periodServices.reduce((sum, s) => sum + s.price, 0);
-    const totalCredits = clients.reduce((sum, c) => sum + (c.totalCredit || 0), 0);
+    const totalSales = periodSales.filter(s => s.paymentStatus !== 'credit').reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
+    const totalCreditSales = periodSales.filter(s => s.paymentStatus === 'credit').reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
+    const totalDiscounts = periodSales.reduce((sum, s) => sum + (Number(s.discount) || 0), 0);
+    const totalPayments = periodPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const totalExpenses = periodExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    const totalServices = periodServices.reduce((sum, s) => sum + Number(s.price), 0);
+    const totalCredits = clients.reduce((sum, c) => sum + (Number(c.totalCredit) || 0), 0);
     const netProfit = totalPayments + totalServices - totalExpenses;
 
     // Chart data
     const days = eachDayOfInterval({ start, end });
     const chartData = days.map(day => {
-      const daySales = periodSales.filter(s => isSameDay(parseISO(s.exitDate), day))
+      const daySales = periodSales.filter(s => isSameDay(parseISO(s.exitDate), day) && s.paymentStatus !== 'credit')
+        .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+      const dayCreditSales = periodSales.filter(s => isSameDay(parseISO(s.exitDate), day) && s.paymentStatus === 'credit')
         .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
       const dayPayments = periodPayments.filter(p => isSameDay(parseISO(p.date), day))
         .reduce((sum, p) => sum + p.amount, 0);
@@ -176,6 +198,7 @@ const Dashboard: React.FC = () => {
       return {
         date: format(day, 'dd/MM'),
         sales: daySales,
+        creditSales: dayCreditSales,
         payments: dayPayments,
         expenses: dayExpenses,
         services: dayServices,
@@ -185,6 +208,8 @@ const Dashboard: React.FC = () => {
 
     return {
       totalSales,
+      totalCreditSales,
+      totalDiscounts,
       totalPayments,
       totalExpenses,
       totalServices,
@@ -205,6 +230,8 @@ const Dashboard: React.FC = () => {
       await generatePDFReport({
         dateRange,
         totalSales: filteredData.totalSales,
+        totalCreditSales: filteredData.totalCreditSales,
+        totalDiscounts: filteredData.totalDiscounts,
         totalPayments: filteredData.totalPayments,
         totalExpenses: filteredData.totalExpenses,
         totalServices: filteredData.totalServices,
@@ -224,6 +251,36 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleGenerateDailyReport = async () => {
+    if (profile?.role !== 'admin') return;
+    setIsGeneratingReport(true);
+    const today = format(new Date(), 'yyyy-MM-dd');
+    try {
+      await generatePDFReport({
+        dateRange: { start: today, end: today },
+        totalSales: filteredData.totalSales,
+        totalCreditSales: filteredData.totalCreditSales,
+        totalDiscounts: filteredData.totalDiscounts,
+        totalPayments: filteredData.totalPayments,
+        totalExpenses: filteredData.totalExpenses,
+        totalServices: filteredData.totalServices,
+        totalCredits: filteredData.totalCredits,
+        netProfit: filteredData.netProfit,
+        stockExits: filteredData.periodSales,
+        payments: filteredData.periodPayments,
+        expenses: filteredData.periodExpenses,
+        services: filteredData.periodServices,
+        products: products,
+        language: i18n.language,
+        isDaily: true
+      }, t);
+    } catch (error) {
+      console.error('Daily report generation failed:', error);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   const totalStockValue = products.reduce((sum, p) => sum + ((Number(p.stockQuantity) || 0) * (Number(p.purchasePrice) || 0)), 0);
   const totalPotentialRevenue = products.reduce((sum, p) => sum + ((Number(p.stockQuantity) || 0) * (Number(p.salePrice) || 0)), 0);
   const lowStockCount = products.filter(p => (Number(p.stockQuantity) || 0) <= (Number(p.minStockLevel) || 0)).length;
@@ -237,10 +294,11 @@ const Dashboard: React.FC = () => {
   ];
 
   const financialStats = [
-    { label: t('dashboard.financials.totalSales'), value: filteredData.totalSales, icon: ArrowUpRight, color: 'text-primary', bg: 'bg-primary/10' },
+    { label: t('dashboard.financials.totalSales', 'Ventes Normales'), value: filteredData.totalSales, icon: ArrowUpRight, color: 'text-primary', bg: 'bg-primary/10' },
+    { label: t('dashboard.financials.totalCreditSales', 'Ventes par Crédit'), value: filteredData.totalCreditSales, icon: AlertTriangle, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+    { label: t('dashboard.financials.totalDiscounts', 'Remises'), value: filteredData.totalDiscounts, icon: ArrowDownRight, color: 'text-danger', bg: 'bg-danger/10' },
     { label: t('dashboard.financials.paymentsReceived'), value: filteredData.totalPayments, icon: Wallet, color: 'text-success', bg: 'bg-success/10' },
     { label: t('dashboard.financials.totalServices'), value: filteredData.totalServices, icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    { label: t('dashboard.financials.outstandingCredits'), value: filteredData.totalCredits, icon: AlertTriangle, color: 'text-accent', bg: 'bg-accent/10' },
     { label: t('dashboard.financials.totalExpenses'), value: filteredData.totalExpenses, icon: ArrowDownRight, color: 'text-danger', bg: 'bg-danger/10' },
     { label: t('dashboard.financials.netProfit'), value: filteredData.netProfit, icon: TrendingUp, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
   ];
@@ -253,6 +311,27 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-10">
+      {/* Cash Session Warning */}
+      {!currentSession && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/50 rounded-full flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="text-amber-600 dark:text-amber-400 w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-amber-800 dark:text-amber-300 font-bold">{t('dashboard.cashWarning.title')}</h3>
+            <p className="text-amber-700 dark:text-amber-400 text-sm mt-1">
+              {t('dashboard.cashWarning.desc')}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/cash-register')}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl transition-colors whitespace-nowrap"
+          >
+            {t('dashboard.cashWarning.button')}
+          </button>
+        </div>
+      )}
+
       {/* Welcome Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -356,18 +435,28 @@ const Dashboard: React.FC = () => {
               </div>
 
               {profile?.role === 'admin' && (
-                <button
-                  onClick={handleGenerateReport}
-                  disabled={isGeneratingReport}
-                  className="btn-primary flex items-center gap-2 shadow-lg shadow-primary/20 whitespace-nowrap disabled:opacity-50"
-                >
-                  {isGeneratingReport ? (
-                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <Download size={18} />
-                  )}
-                  {isGeneratingReport ? t('common.loading') : t('dashboard.generateReport')}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleGenerateDailyReport}
+                    disabled={isGeneratingReport}
+                    className="btn-secondary flex items-center gap-2 shadow-sm whitespace-nowrap disabled:opacity-50"
+                  >
+                    <Calendar size={18} />
+                    {t('dashboard.report.dailyReport', 'Rapport Jour')}
+                  </button>
+                  <button
+                    onClick={handleGenerateReport}
+                    disabled={isGeneratingReport}
+                    className="btn-primary flex items-center gap-2 shadow-lg shadow-primary/20 whitespace-nowrap disabled:opacity-50"
+                  >
+                    {isGeneratingReport ? (
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      <Download size={18} />
+                    )}
+                    {isGeneratingReport ? t('common.loading') : t('dashboard.generateReport')}
+                  </button>
+                </div>
               )}
             </div>
           </div>

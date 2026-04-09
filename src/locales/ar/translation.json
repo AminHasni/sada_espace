@@ -4,6 +4,7 @@
     "stock": "المخزون",
     "stockEntries": "مدخلات المخزون",
     "stockExits": "مخرجات المخزون",
+    "cashRegister": "الصندوق",
     "suppliers": "الموردون",
     "clients": "الزبائن والديون",
     "expenses": "المصاريف",
@@ -58,7 +59,37 @@
     "price": "السعر",
     "user": "أمين المخزن"
   },
+  "cashRegister": {
+    "openSession": "فتح الصندوق",
+    "openSessionDesc": "يرجى إدخال المبلغ الأولي (صندوق البداية) لبدء يوم عملك.",
+    "initialAmount": "المبلغ الأولي (د) *",
+    "notes": "ملاحظات (اختياري)",
+    "startWork": "بدء العمل",
+    "sessionOpen": "الصندوق مفتوح",
+    "sessionOpenDesc": "جلسة الصندوق الخاصة بك مفتوحة حاليا.",
+    "openedAt": "فتح في",
+    "closeSession": "إغلاق الصندوق",
+    "finalAmount": "المبلغ النهائي في الصندوق (د) *",
+    "submitClose": "إغلاق الجلسة",
+    "history": {
+      "title": "سجل جلسات الصندوق",
+      "subtitle": "تتبع المبالغ الأولية والنهائية لكل أمين مخزن.",
+      "magasinier": "أمين المخزن",
+      "opened": "فتحت في",
+      "closed": "أغلقت في",
+      "initial": "الأولي",
+      "final": "النهائي",
+      "status": "الحالة",
+      "open": "مفتوحة",
+      "closedStatus": "مغلقة"
+    }
+  },
   "dashboard": {
+    "cashWarning": {
+      "title": "الصندوق غير مفتوح",
+      "desc": "لم تقم بفتح جلسة الصندوق بعد. يرجى فتح الصندوق للبدء في تسجيل المعاملات.",
+      "button": "فتح الصندوق"
+    },
     "welcome": "مرحباً، {{name}} 👋",
     "subtitle": "إليك ما يحدث في شركتك اليوم.",
     "todayDate": "تاريخ اليوم",
@@ -80,10 +111,10 @@
     "financialOverview": "الإدارة المالية",
     "revenueTrend": "تطور الإيرادات",
     "financials": {
-      "totalSales": "إجمالي المبيعات",
+      "totalSales": "مبيعات عادية",
+      "totalCreditSales": "مبيعات بالدين",
       "paymentsReceived": "المدفوعات المستلمة",
       "totalServices": "إجمالي الخدمات",
-      "outstandingCredits": "الديون الجارية",
       "totalExpenses": "إجمالي المصاريف",
       "netProfit": "صافي الربح"
     },
@@ -103,6 +134,10 @@
       "sales": "تفاصيل المبيعات",
       "expenses": "تفاصيل المصاريف",
       "payments": "تفاصيل المدفوعات",
+      "services": "تفاصيل الخدمات",
+      "credits": "تفاصيل الديون",
+      "dailyReport": "التقرير اليومي",
+      "dailyReportDesc": "جميع المعاملات والديون لهذا اليوم.",
       "footer": "صفحة {{page}} من {{total}}"
     }
   },
@@ -167,15 +202,15 @@
       "categoryPlaceholder": "مثال: إلكترونيات، ملابس...",
       "unit": "وحدة القياس",
       "description": "الوصف",
-      "purchasePrice": "سعر الشراء (د.ج)",
-      "salePrice": "سعر البيع (د.ج)",
+      "purchasePrice": "سعر الشراء (د)",
+      "salePrice": "سعر البيع (د)",
       "stockTotal": "إجمالي المخزون",
       "minStock": "حد التنبيه",
       "variantsTitle": "متغيرات المنتج",
       "optional": "اختياري",
       "variantNamePlaceholder": "الاسم (مثال: XL، أحمر)",
       "variantStockPlaceholder": "المخزون",
-      "variantPricePlaceholder": "+/- السعر (د.ج)",
+      "variantPricePlaceholder": "+/- السعر (د)",
       "addVariant": "إضافة",
       "variant": "متغير",
       "cancel": "إلغاء",
@@ -245,7 +280,7 @@
       "date": "التاريخ",
       "method": "الطريقة",
       "notes": "ملاحظات",
-      "initialCredit": "الدين الأولي (د.ج)",
+      "initialCredit": "الدين الأولي (د)",
       "cancel": "إلغاء",
       "save": "حفظ",
       "create": "إنشاء الزبون"
@@ -567,7 +602,7 @@
       "newTitle": "تسجيل مصروف",
       "addTitle": "إضافة مصاريف جديدة",
       "editTitle": "تعديل المصروف",
-      "amount": "المبلغ (د.ج) *",
+      "amount": "المبلغ (د) *",
       "description": "الوصف التوضيحي *",
       "category": "الفئة",
       "date": "تاريخ المصروف",
@@ -584,7 +619,7 @@
       "marketing": "التسويق",
       "other": "أخرى"
     },
-    "deleteConfirm": "هل تريد حذف هذا المصروف بقيمة {{amount}} د.ج؟",
+    "deleteConfirm": "هل تريد حذف هذا المصروف بقيمة {{amount}} د؟",
     "logs": {
       "expenseCreated": "تم إنشاء مصاريف: {{description}} ({{amount}})",
       "expenseUpdated": "تم تحديث مصاريف: {{description}} ({{amount}})",

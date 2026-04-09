@@ -169,6 +169,7 @@ export interface StockExit {
   paymentStatus?: 'paid' | 'credit';
   amountPaid?: number;
   totalAmount?: number;
+  discount?: number;
   performedBy: string; // User UID
   performedByName: string;
   notes?: string;
@@ -242,4 +243,16 @@ export interface Notification {
   isRead: boolean;
   link?: string;
   createdAt: string;
+}
+
+export interface CashSession {
+  id?: string;
+  userId: string;
+  userName: string;
+  openedAt: string;
+  closedAt?: string | null;
+  initialAmount: number;
+  finalAmount?: number | null;
+  status: 'open' | 'closed';
+  notes?: string;
 }

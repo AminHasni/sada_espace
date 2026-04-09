@@ -7,12 +7,14 @@ import {
   query, 
   orderBy,
   runTransaction,
-  where
+  where,
+  limit,
+  getDocs
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../components/AuthProvider';
 import { useTranslation } from 'react-i18next';
-import { StockExit, Client, Product, StockExitItem, UserProfile } from '../types';
+import { StockExit, Client, Product, StockExitItem, UserProfile, CashSession } from '../types';
 import { 
   Plus, 
   Search, 
@@ -34,15 +36,20 @@ import { notificationService } from '../services/notificationService';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { format } from 'date-fns';
 import { fr, arDZ } from 'date-fns/locale';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const StockExits: React.FC = () => {
   const { profile } = useAuth();
   const { t, i18n } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [exits, setExits] = useState<StockExit[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [notifiedUsers, setNotifiedUsers] = useState<UserProfile[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [filterClient, setFilterClient] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedExitId, setExpandedExitId] = useState<string | null>(null);
@@ -51,6 +58,7 @@ const StockExits: React.FC = () => {
   const [listCategoryFilter, setListCategoryFilter] = useState('');
   const [variantPickerProduct, setVariantPickerProduct] = useState<Product | null>(null);
   const [variantQuantities, setVariantQuantities] = useState<Record<string, number>>({});
+  const [currentSession, setCurrentSession] = useState<CashSession | null>(null);
 
   const dateLocale = i18n.language === 'ar' ? arDZ : fr;
 
@@ -64,6 +72,7 @@ const StockExits: React.FC = () => {
     exitDate: new Date().toISOString().split('T')[0],
     paymentStatus: 'paid' as 'paid' | 'credit',
     amountPaid: '' as any,
+    discount: '' as any,
     notes: '',
     items: [] as StockExitItem[]
   });
@@ -90,13 +99,123 @@ const StockExits: React.FC = () => {
       setNotifiedUsers(usersList);
     });
 
+    const qSession = query(
+      collection(db, 'cash_sessions'),
+      where('userId', '==', profile.uid),
+      where('status', '==', 'open'),
+      limit(1)
+    );
+    const unsubscribeSession = onSnapshot(qSession, (snapshot) => {
+      if (!snapshot.empty) {
+        setCurrentSession({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as any);
+      } else {
+        setCurrentSession(null);
+      }
+    });
+
     return () => {
       unsubscribeExits();
       unsubscribeClients();
       unsubscribeProducts();
       unsubscribeUsers();
+      unsubscribeSession();
     };
   }, [profile]);
+
+  const handleDeleteExit = async (exit: StockExit) => {
+    if (profile?.role !== 'admin') {
+      alert(t('common.permissionDenied', 'Accès refusé. Seul un administrateur peut supprimer une sortie.'));
+      return;
+    }
+
+    if (!window.confirm(t('stockExits.deleteConfirm', 'Êtes-vous sûr de vouloir supprimer cette sortie ? Cette action restaurera le stock et annulera les crédits/paiements associés.'))) {
+      return;
+    }
+
+    try {
+      // Find associated payment if any
+      let paymentIdToDelete: string | null = null;
+      if (exit.type === 'sale' && (exit.amountPaid || 0) > 0) {
+        const qPayment = query(
+          collection(db, 'payments'),
+          where('notes', '==', `Paiement initial pour la vente ${exit.exitNumber}`),
+          limit(1)
+        );
+        const paymentSnap = await getDocs(qPayment);
+        if (!paymentSnap.empty) {
+          paymentIdToDelete = paymentSnap.docs[0].id;
+        }
+      }
+
+      await runTransaction(db, async (transaction) => {
+        // 1. Read all products
+        const productRefs = exit.items.map(item => doc(db, 'products', item.productId));
+        const productSnaps = await Promise.all(productRefs.map(ref => transaction.get(ref)));
+
+        // 2. Read client if applicable
+        let clientSnap = null;
+        let clientRef = null;
+        if (exit.type === 'sale' && exit.clientId) {
+          clientRef = doc(db, 'clients', exit.clientId);
+          clientSnap = await transaction.get(clientRef);
+        }
+
+        // 3. Perform updates
+        exit.items.forEach((item, index) => {
+          const pSnap = productSnaps[index];
+          if (pSnap.exists()) {
+            const productData = pSnap.data() as Product;
+            let currentStock = productData.stockQuantity || 0;
+            let updatedVariants = productData.variants ? [...productData.variants] : undefined;
+
+            if (item.variantId && updatedVariants) {
+              const variantIndex = updatedVariants.findIndex(v => v.id === item.variantId);
+              if (variantIndex >= 0) {
+                updatedVariants[variantIndex].stockQuantity += item.quantity;
+              }
+            }
+
+            transaction.update(productRefs[index], {
+              stockQuantity: currentStock + item.quantity,
+              ...(updatedVariants ? { variants: updatedVariants } : {}),
+              updatedAt: new Date().toISOString()
+            });
+          }
+        });
+
+        if (clientSnap && clientSnap.exists() && clientRef) {
+          const currentCredit = clientSnap.data().totalCredit || 0;
+          const creditToRemove = (exit.totalAmount || 0) - (exit.amountPaid || 0);
+          if (creditToRemove > 0) {
+            transaction.update(clientRef, { 
+              totalCredit: Math.max(0, currentCredit - creditToRemove) 
+            });
+          }
+        }
+
+        if (paymentIdToDelete) {
+          transaction.delete(doc(db, 'payments', paymentIdToDelete));
+        }
+
+        transaction.delete(doc(db, 'stock_exits', exit.id!));
+
+        const logRef = doc(collection(db, 'logs'));
+        transaction.set(logRef, {
+          userId: profile.uid,
+          userName: profile.displayName,
+          action: 'stock_exit_delete',
+          details: `Suppression de la sortie ${exit.exitNumber}`,
+          createdAt: new Date().toISOString()
+        });
+      });
+
+      if (profile) {
+        await logActivity(profile.uid, profile.displayName, 'stock_exit_delete', `Suppression de la sortie ${exit.exitNumber}`);
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `stock_exits/${exit.id}`);
+    }
+  };
 
   const handleOpenModal = () => {
     setFormData({
@@ -109,6 +228,7 @@ const StockExits: React.FC = () => {
       exitDate: new Date().toISOString().split('T')[0],
       paymentStatus: 'paid',
       amountPaid: '' as any,
+      discount: '' as any,
       notes: '',
       items: []
     });
@@ -117,6 +237,35 @@ const StockExits: React.FC = () => {
     setVariantPickerProduct(null);
     setIsModalOpen(true);
   };
+
+  useEffect(() => {
+    if (!loading && location.state?.openModal && location.state?.clientId) {
+      if (currentSession) {
+        setFormData({
+          exitNumber: `SORT-${Date.now().toString().slice(-6)}`,
+          type: 'sale',
+          clientId: location.state.clientId,
+          projectId: '',
+          projectName: '',
+          serviceName: '',
+          exitDate: new Date().toISOString().split('T')[0],
+          paymentStatus: 'paid',
+          amountPaid: '' as any,
+          discount: '' as any,
+          notes: '',
+          items: []
+        });
+        setProductSearch('');
+        setSelectedCategory('');
+        setVariantPickerProduct(null);
+        setIsModalOpen(true);
+      } else {
+        alert("Veuillez ouvrir une session de caisse d'abord");
+      }
+      // Clear state to avoid reopening modal on refresh
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, navigate, location.pathname, loading, currentSession]);
 
   const addItem = () => {
     setFormData({
@@ -214,7 +363,7 @@ const StockExits: React.FC = () => {
           const newStock = currentStock - totalQuantityToExit;
           transaction.update(productRef, { 
             stockQuantity: newStock,
-            variants: updatedVariants,
+            ...(updatedVariants ? { variants: updatedVariants } : {}),
             updatedAt: new Date().toISOString()
           });
 
@@ -272,7 +421,9 @@ const StockExits: React.FC = () => {
 
         // 3. Create Stock Exit
         const client = clients.find(c => c.id === formData.clientId);
-        const totalAmount = formData.items.reduce((sum, item) => sum + (item.quantity * (Number(item.unitPrice) || 0)), 0);
+        const subTotal = formData.items.reduce((sum, item) => sum + (item.quantity * (Number(item.unitPrice) || 0)), 0);
+        const discountAmount = Number(formData.discount) || 0;
+        const totalAmount = Math.max(0, subTotal - discountAmount);
         
         const sanitizedItems = formData.items.map(item => ({
           ...item,
@@ -282,6 +433,8 @@ const StockExits: React.FC = () => {
         
         const exitData = {
           ...formData,
+          discount: discountAmount,
+          amountPaid: Number(formData.amountPaid) || 0,
           items: sanitizedItems,
           totalAmount,
           clientName: client?.name || '',
@@ -352,7 +505,10 @@ const StockExits: React.FC = () => {
       return product?.category === listCategoryFilter;
     });
 
-    return matchesSearch && matchesCategory;
+    const matchesType = !filterType || e.type === filterType;
+    const matchesClient = !filterClient || e.clientId === filterClient;
+
+    return matchesSearch && matchesCategory && matchesType && matchesClient;
   });
 
   return (
@@ -363,14 +519,26 @@ const StockExits: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400">{t('stockExits.subtitle')}</p>
         </div>
         {(profile?.role === 'admin' || profile?.role === 'warehouseman') && (
-          <button onClick={handleOpenModal} className="btn-primary flex items-center gap-2">
-            <Plus size={20} /> {t('stockExits.newExit')}
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            <button 
+              onClick={handleOpenModal} 
+              disabled={!currentSession}
+              className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!currentSession ? "Veuillez ouvrir une session de caisse d'abord" : ""}
+            >
+              <Plus size={20} /> {t('stockExits.newExit')}
+            </button>
+            {!currentSession && (
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                Caisse non ouverte
+              </span>
+            )}
+          </div>
         )}
       </div>
 
-      <div className="flex flex-col md:flex-row items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-        <div className="flex-1 flex items-center gap-4">
+      <div className="flex flex-col md:flex-row items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex-wrap">
+        <div className="flex-1 flex items-center gap-4 min-w-[200px]">
           <Search className="text-slate-400" size={20} />
           <input 
             type="text" 
@@ -380,7 +548,32 @@ const StockExits: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="w-full md:w-64">
+        <div className="w-full md:w-48">
+          <select
+            className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all text-sm"
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+          >
+            <option value="">Tous les types</option>
+            <option value="sale">{t('stockExits.types.sale')}</option>
+            <option value="internal_consumption">{t('stockExits.types.internal_consumption')}</option>
+            <option value="return_to_supplier">{t('stockExits.types.return_to_supplier')}</option>
+            <option value="adjustment_minus">{t('stockExits.types.adjustment_minus')}</option>
+          </select>
+        </div>
+        <div className="w-full md:w-48">
+          <select
+            className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all text-sm"
+            value={filterClient}
+            onChange={(e) => setFilterClient(e.target.value)}
+          >
+            <option value="">Tous les clients</option>
+            {clients.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="w-full md:w-48">
           <select
             className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all text-sm"
             value={listCategoryFilter}
@@ -425,6 +618,15 @@ const StockExits: React.FC = () => {
                   <span>{format(new Date(exit.exitDate), 'dd MMM yyyy', { locale: dateLocale })}</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  {profile?.role === 'admin' && (
+                    <button
+                      onClick={() => handleDeleteExit(exit)}
+                      className="p-2 hover:bg-danger/10 text-slate-400 hover:text-danger rounded-xl transition-colors"
+                      title={t('common.delete', 'Supprimer')}
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  )}
                   <button 
                     onClick={() => setExpandedExitId(expandedExitId === exit.id ? null : exit.id)}
                     className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 transition-colors"
@@ -458,6 +660,36 @@ const StockExits: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
+                  {exit.type === 'sale' && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                      <div className="w-64 space-y-2 text-sm">
+                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                          <span>Sous-total:</span>
+                          <span>{(exit.items.reduce((sum, item) => sum + (item.quantity * (Number(item.unitPrice) || 0)), 0)).toLocaleString()} {t('common.currency')}</span>
+                        </div>
+                        {exit.discount > 0 && (
+                          <div className="flex justify-between text-danger font-medium">
+                            <span>Remise:</span>
+                            <span>-{exit.discount.toLocaleString()} {t('common.currency')}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-slate-900 dark:text-white font-bold text-base pt-2 border-t border-slate-200 dark:border-slate-700">
+                          <span>Total:</span>
+                          <span>{(exit.totalAmount || 0).toLocaleString()} {t('common.currency')}</span>
+                        </div>
+                        <div className="flex justify-between text-success font-medium">
+                          <span>Payé:</span>
+                          <span>{(exit.amountPaid || 0).toLocaleString()} {t('common.currency')}</span>
+                        </div>
+                        {(exit.totalAmount || 0) - (exit.amountPaid || 0) > 0 && (
+                          <div className="flex justify-between text-amber-600 dark:text-amber-400 font-medium">
+                            <span>Crédit:</span>
+                            <span>{((exit.totalAmount || 0) - (exit.amountPaid || 0)).toLocaleString()} {t('common.currency')}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-4 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 italic">
                   <span>{t('stockExits.processedBy', { name: exit.performedByName })}</span>
@@ -504,6 +736,61 @@ const StockExits: React.FC = () => {
                 </div>
               </div>
 
+              {formData.type === 'sale' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-primary/5 rounded-3xl border border-primary/10">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('stockExits.modal.selectClient')}</label>
+                    <select 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all font-medium"
+                      value={formData.clientId}
+                      onChange={(e) => setFormData({...formData, clientId: e.target.value})}
+                    >
+                      <option value="">{t('stockExits.modal.selectClient')}</option>
+                      {clients.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('common.status')}</label>
+                    <div className="flex gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({...formData, paymentStatus: 'paid', amountPaid: formData.items.reduce((sum, item) => sum + (item.quantity * (item.unitPrice || 0)), 0) - (formData.discount || 0)})}
+                        className={`flex-1 py-3 rounded-xl border-2 transition-all font-bold ${formData.paymentStatus === 'paid' ? 'border-primary bg-primary text-white' : 'border-slate-200 dark:border-slate-700 text-slate-500'}`}
+                      >
+                        {t('stockExits.paymentStatus.paid', 'Payé')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({...formData, paymentStatus: 'credit', amountPaid: 0})}
+                        className={`flex-1 py-3 rounded-xl border-2 transition-all font-bold ${formData.paymentStatus === 'credit' ? 'border-orange-500 bg-orange-500 text-white' : 'border-slate-200 dark:border-slate-700 text-slate-500'}`}
+                      >
+                        {t('stockExits.paymentStatus.credit', 'Crédit')}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('common.amountPaid', 'Montant Payé (DT)')}</label>
+                    <input 
+                      type="number" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all font-medium" 
+                      value={formData.amountPaid} 
+                      onChange={(e) => setFormData({...formData, amountPaid: parseFloat(e.target.value) || 0})} 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('common.discount', 'Remise (DT)')}</label>
+                    <input 
+                      type="number" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 transition-all font-medium" 
+                      value={formData.discount} 
+                      onChange={(e) => setFormData({...formData, discount: parseFloat(e.target.value) || 0})} 
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                   <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-lg">
@@ -537,7 +824,7 @@ const StockExits: React.FC = () => {
                 </div>
                 
                 <div className="relative">
-                  {productSearch && (
+                  {(productSearch || selectedCategory) && (
                     <div className="absolute z-20 w-full -mt-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl max-h-64 overflow-y-auto">
                       {products.filter(p => 
                         (p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.reference.toLowerCase().includes(productSearch.toLowerCase())) && 
@@ -566,6 +853,7 @@ const StockExits: React.FC = () => {
                                 }]
                               });
                               setProductSearch('');
+                              setSelectedCategory('');
                             }
                           }}
                         >
@@ -579,7 +867,7 @@ const StockExits: React.FC = () => {
                           </div>
                         </button>
                       ))}
-                      {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()) && !formData.items.find(i => i.productId === p.id)).length === 0 && (
+                      {products.filter(p => (p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.reference.toLowerCase().includes(productSearch.toLowerCase())) && (!selectedCategory || p.category === selectedCategory) && !formData.items.find(i => i.productId === p.id)).length === 0 && (
                         <div className="px-6 py-8 text-slate-500 text-center flex flex-col items-center justify-center">
                           <Package size={32} className="text-slate-300 dark:text-slate-600 mb-2" />
                           <p>{t('stock.noProductFound')}</p>
@@ -678,6 +966,7 @@ const StockExits: React.FC = () => {
                             }
                             setVariantPickerProduct(null);
                             setProductSearch('');
+                            setSelectedCategory('');
                           }}
                           className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md shadow-primary/20"
                         >

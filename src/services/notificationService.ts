@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Notification } from '../types';
+import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 
 export const notificationService = {
   async sendNotification(notification: Omit<Notification, 'id' | 'isRead' | 'createdAt'>) {
@@ -77,6 +78,8 @@ export const notificationService = {
         ...doc.data()
       } as Notification));
       callback(notifications);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'notifications');
     });
   }
 };

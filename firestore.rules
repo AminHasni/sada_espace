@@ -136,7 +136,11 @@ service cloud.firestore {
     }
 
     match /cash_transactions/{id} {
-      allow read: if isAuthenticated() && isNotPaused() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow read: if isAuthenticated() && isNotPaused() && (
+        isAdmin() || 
+        resource.data.userId == request.auth.uid ||
+        (resource.data.sessionId != null && get(/databases/$(database)/documents/cash_sessions/$(resource.data.sessionId)).data.userId == request.auth.uid)
+      );
       allow create: if isAuthenticated() && isNotPaused() && (isAdmin() || isWarehouseman()) && request.resource.data.userId == request.auth.uid;
       allow update: if isAdmin();
       allow delete: if isAdmin();

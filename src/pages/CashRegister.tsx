@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
+import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { useAuth } from '../components/AuthProvider';
 import { CashSession, CashTransaction } from '../types';
 import { Wallet, Plus, CheckCircle, XCircle, Clock, History, User, ArrowUpCircle } from 'lucide-react';
@@ -9,7 +10,7 @@ import { format } from 'date-fns';
 import { fr, arDZ } from 'date-fns/locale';
 
 export default function CashRegister() {
-  const { profile } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const { t, i18n } = useTranslation();
   const [currentSession, setCurrentSession] = useState<CashSession | null>(null);
   const [allSessions, setAllSessions] = useState<CashSession[]>([]);
@@ -25,7 +26,12 @@ export default function CashRegister() {
   const dateLocale = i18n.language === 'ar' ? arDZ : fr;
 
   useEffect(() => {
-    if (!profile) return;
+    if (authLoading) return;
+    
+    if (!profile) {
+      setLoading(false);
+      return;
+    }
 
     // Current open session for the logged in user
     const q = query(
@@ -35,7 +41,15 @@ export default function CashRegister() {
       limit(1)
     );
 
+    let unsubscribeTrans: (() => void) | null = null;
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      // Clean up previous transaction listener if it exists
+      if (unsubscribeTrans) {
+        unsubscribeTrans();
+        unsubscribeTrans = null;
+      }
+
       if (!snapshot.empty) {
         const sessionData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as CashSession;
         setCurrentSession(sessionData);
@@ -47,18 +61,16 @@ export default function CashRegister() {
           orderBy('timestamp', 'desc')
         );
         
-        const unsubscribeTrans = onSnapshot(transQ, (transSnapshot) => {
+        unsubscribeTrans = onSnapshot(transQ, (transSnapshot) => {
           setSessionTransactions(transSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CashTransaction)));
-        });
-        
-        return () => unsubscribeTrans();
+        }, (error) => handleFirestoreError(error, OperationType.GET, 'cash_transactions'));
       } else {
         setCurrentSession(null);
         setSessionTransactions([]);
       }
       setLoading(false);
     }, (error) => {
-      console.error("Error fetching cash session:", error);
+      handleFirestoreError(error, OperationType.GET, 'cash_sessions');
       setLoading(false);
     });
 
@@ -72,14 +84,15 @@ export default function CashRegister() {
       );
       unsubscribeAll = onSnapshot(qAll, (snapshot) => {
         setAllSessions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CashSession)));
-      });
+      }, (error) => handleFirestoreError(error, OperationType.GET, 'cash_sessions'));
     }
 
     return () => {
       unsubscribe();
+      if (unsubscribeTrans) unsubscribeTrans();
       unsubscribeAll();
     };
-  }, [profile]);
+  }, [profile, authLoading]);
 
   const handleOpenSession = async (e: React.FormEvent) => {
     e.preventDefault();

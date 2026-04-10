@@ -74,7 +74,7 @@ const StockEntries: React.FC = () => {
 
     const unsubscribeProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
       setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[]);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'products'));
 
     const qSession = query(
       collection(db, 'cash_sessions'),
@@ -88,7 +88,7 @@ const StockEntries: React.FC = () => {
       } else {
         setCurrentSession(null);
       }
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'cash_sessions'));
 
     return () => {
       unsubscribeEntries();

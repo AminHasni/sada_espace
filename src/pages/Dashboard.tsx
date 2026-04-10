@@ -108,11 +108,14 @@ const Dashboard: React.FC = () => {
       handleFirestoreError(error, OperationType.GET, 'services');
     });
 
-    const unsubAllSessions = onSnapshot(collection(db, 'cash_sessions'), (snap) => {
-      setCashSessions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CashSession)));
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'cash_sessions');
-    });
+    let unsubAllSessions = () => {};
+    if (profile.role === 'admin') {
+      unsubAllSessions = onSnapshot(collection(db, 'cash_sessions'), (snap) => {
+        setCashSessions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CashSession)));
+      }, (error) => {
+        handleFirestoreError(error, OperationType.GET, 'cash_sessions');
+      });
+    }
 
     const qSession = query(
       collection(db, 'cash_sessions'),

@@ -88,16 +88,16 @@ const StockExits: React.FC = () => {
 
     const unsubscribeClients = onSnapshot(collection(db, 'clients'), (snapshot) => {
       setClients(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Client[]);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'clients'));
 
     const unsubscribeProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
       setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[]);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'products'));
 
     const unsubscribeUsers = onSnapshot(query(collection(db, 'users'), where('role', 'in', ['admin', 'warehouseman'])), (snapshot) => {
       const usersList = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as UserProfile[];
       setNotifiedUsers(usersList);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
 
     const qSession = query(
       collection(db, 'cash_sessions'),
@@ -111,7 +111,7 @@ const StockExits: React.FC = () => {
       } else {
         setCurrentSession(null);
       }
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'cash_sessions'));
 
     return () => {
       unsubscribeExits();

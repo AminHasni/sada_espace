@@ -92,8 +92,8 @@ export interface Client {
 
 export interface Payment {
   id?: string;
-  clientId: string;
-  clientName: string;
+  clientId?: string;
+  clientName?: string;
   amount: number;
   date: string;
   method: 'cash' | 'check' | 'transfer';
@@ -198,20 +198,6 @@ export interface ServiceRecord {
   createdAt: string;
 }
 
-export interface Reclamation {
-  id?: string;
-  title: string;
-  description: string;
-  status: 'pending' | 'in_progress' | 'resolved' | 'rejected';
-  priority: 'low' | 'medium' | 'high';
-  submittedBy: string; // User UID
-  submittedByName: string;
-  createdAt: string;
-  updatedAt?: string;
-  resolvedAt?: string;
-  resolutionNotes?: string;
-}
-
 export type UserRole = 'admin' | 'warehouseman';
 
 export interface UserProfile {
@@ -252,7 +238,19 @@ export interface CashSession {
   openedAt: string;
   closedAt?: string | null;
   initialAmount: number;
+  totalAdded?: number;
   finalAmount?: number | null;
   status: 'open' | 'closed';
   notes?: string;
+}
+
+export interface CashTransaction {
+  id?: string;
+  sessionId: string;
+  userId: string;
+  userName: string;
+  amount: number;
+  type: 'add_funds' | 'remove_funds';
+  reason?: string;
+  timestamp: string;
 }

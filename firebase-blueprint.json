@@ -52,7 +52,7 @@
         "performedByName": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["clientId", "amount", "date", "method", "performedBy"]
+      "required": ["amount", "date", "method", "performedBy"]
     },
     "UserProfile": {
       "title": "UserProfile",
@@ -192,23 +192,37 @@
       },
       "required": ["amount", "description", "date", "recordedBy"]
     },
-    "Reclamation": {
-      "title": "Reclamation",
-      "description": "Complaints or support requests from warehousemen.",
+    "CashSession": {
+      "title": "CashSession",
+      "description": "A daily cash session for a user.",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "in_progress", "resolved", "rejected"] },
-        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
-        "submittedBy": { "type": "string" },
-        "submittedByName": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" },
-        "resolvedAt": { "type": "string", "format": "date-time" },
-        "resolutionNotes": { "type": "string" }
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "openedAt": { "type": "string", "format": "date-time" },
+        "closedAt": { "type": "string", "format": "date-time" },
+        "initialAmount": { "type": "number" },
+        "totalAdded": { "type": "number" },
+        "finalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "notes": { "type": "string" }
       },
-      "required": ["title", "description", "status", "priority", "submittedBy", "createdAt"]
+      "required": ["userId", "userName", "openedAt", "initialAmount", "status"]
+    },
+    "CashTransaction": {
+      "title": "CashTransaction",
+      "description": "A transaction within a cash session (e.g., adding funds).",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["add_funds", "remove_funds"] },
+        "reason": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sessionId", "userId", "amount", "type", "timestamp"]
     }
   },
   "firestore": {
@@ -223,6 +237,7 @@
     "/stock_exits/{exitId}": { "schema": "StockExit", "description": "Goods dispatched" },
     "/notifications/{notificationId}": { "schema": "Notification", "description": "User notifications" },
     "/expenses/{expenseId}": { "schema": "Expense", "description": "External expenses" },
-    "/reclamations/{reclamationId}": { "schema": "Reclamation", "description": "User reclamations" }
+    "/cash_sessions/{sessionId}": { "schema": "CashSession", "description": "Cash register sessions" },
+    "/cash_transactions/{transactionId}": { "schema": "CashTransaction", "description": "Cash register transactions" }
   }
 }

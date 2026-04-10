@@ -55,6 +55,7 @@ const Dashboard: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [services, setServices] = useState<ServiceRecord[]>([]);
+  const [cashSessions, setCashSessions] = useState<CashSession[]>([]);
   const [currentSession, setCurrentSession] = useState<CashSession | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<{ type: 'stock' | 'credit', content: string } | null>(null);
@@ -107,6 +108,12 @@ const Dashboard: React.FC = () => {
       handleFirestoreError(error, OperationType.GET, 'services');
     });
 
+    const unsubAllSessions = onSnapshot(collection(db, 'cash_sessions'), (snap) => {
+      setCashSessions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CashSession)));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'cash_sessions');
+    });
+
     const qSession = query(
       collection(db, 'cash_sessions'),
       where('userId', '==', profile.uid),
@@ -130,6 +137,7 @@ const Dashboard: React.FC = () => {
       unsubPayments();
       unsubExpenses();
       unsubServices();
+      unsubAllSessions();
       unsubSession();
     };
   }, [profile]);
@@ -171,6 +179,10 @@ const Dashboard: React.FC = () => {
     const periodPayments = payments.filter(filterByDate);
     const periodExpenses = expenses.filter(filterByDate);
     const periodServices = services.filter(filterByDate);
+    const periodCashSessions = cashSessions.filter(s => {
+      const date = parseISO(s.openedAt);
+      return isWithinInterval(date, { start, end });
+    });
 
     const totalSales = periodSales.filter(s => s.paymentStatus !== 'credit').reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
     const totalCreditSales = periodSales.filter(s => s.paymentStatus === 'credit').reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
@@ -219,9 +231,10 @@ const Dashboard: React.FC = () => {
       periodSales,
       periodPayments,
       periodExpenses,
-      periodServices
+      periodServices,
+      periodCashSessions
     };
-  }, [stockExits, payments, expenses, services, clients, dateRange]);
+  }, [stockExits, payments, expenses, services, cashSessions, clients, dateRange]);
 
   const handleGenerateReport = async () => {
     if (profile?.role !== 'admin') return;
@@ -241,6 +254,7 @@ const Dashboard: React.FC = () => {
         payments: filteredData.periodPayments,
         expenses: filteredData.periodExpenses,
         services: filteredData.periodServices,
+        cashSessions: filteredData.periodCashSessions,
         products: products,
         language: i18n.language
       }, t);
@@ -270,6 +284,7 @@ const Dashboard: React.FC = () => {
         payments: filteredData.periodPayments,
         expenses: filteredData.periodExpenses,
         services: filteredData.periodServices,
+        cashSessions: filteredData.periodCashSessions,
         products: products,
         language: i18n.language,
         isDaily: true

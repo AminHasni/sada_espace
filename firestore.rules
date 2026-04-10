@@ -135,17 +135,11 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    match /reclamations/{id} {
-      allow read: if isAuthenticated() && isNotPaused() && (isAdmin() || request.auth.uid == resource.data.submittedBy);
-      allow create: if isAuthenticated() && isNotPaused() && request.auth.uid == request.resource.data.submittedBy;
-      allow update: if isAuthenticated() && isNotPaused() && (
-        isAdmin() || 
-        (request.auth.uid == resource.data.submittedBy && resource.data.status == 'pending')
-      );
-      allow delete: if isAuthenticated() && isNotPaused() && (
-        isAdmin() || 
-        (request.auth.uid == resource.data.submittedBy && resource.data.status == 'pending')
-      );
+    match /cash_transactions/{id} {
+      allow read: if isAuthenticated() && isNotPaused() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isNotPaused() && (isAdmin() || isWarehouseman()) && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     // Catch-all for other paths

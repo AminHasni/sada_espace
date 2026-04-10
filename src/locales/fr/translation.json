@@ -10,7 +10,6 @@
     "expenses": "Dépenses",
     "services": "Services",
     "users": "Utilisateurs",
-    "reclamations": "Réclamations",
     "creditReports": "Rapports de Crédits",
     "profile": "Mon Profil",
     "logout": "Déconnexion"
@@ -54,7 +53,8 @@
     "description": "Description",
     "details": "Détails",
     "price": "Prix",
-    "user": "Magasinier"
+    "user": "Magasinier",
+    "noReason": "Sans raison"
   },
   "cashRegister": {
     "openSession": "Ouvrir la caisse",
@@ -68,6 +68,13 @@
     "closeSession": "Clôturer la caisse",
     "finalAmount": "Montant final en caisse (DT) *",
     "submitClose": "Clôturer la session",
+    "addedFunds": "Fonds ajoutés",
+    "currentTotal": "Total actuel",
+    "addFundsTitle": "Ajouter des fonds",
+    "amountToAdd": "Montant à ajouter",
+    "addReason": "Raison (ex: Fond de roulement)",
+    "submitAddFunds": "Confirmer l'ajout",
+    "recentTransactions": "Transactions récentes",
     "history": {
       "title": "Historique des Sessions de Caisse",
       "subtitle": "Suivi des montants initiaux et de clôture par magazinier.",
@@ -128,6 +135,7 @@
       "title": "Rapport d'Activité",
       "summary": "Résumé Financier",
       "trends": "Tendances d'Activité",
+      "cashSessions": "Sessions de Caisse",
       "sales": "Détail des Ventes",
       "expenses": "Détail des Dépenses",
       "payments": "Détail des Paiements",
@@ -480,45 +488,6 @@
     "modal": {
       "newTitle": "Enregistrer un service",
       "editTitle": "Modifier le service"
-    }
-  },
-  "reclamations": {
-    "title": "Réclamations",
-    "subtitle": "Soumettez et suivez vos réclamations et demandes d'assistance.",
-    "newReclamation": "Nouvelle Réclamation",
-    "searchPlaceholder": "Rechercher une réclamation...",
-    "submittedBy": "Soumis par: {{name}}",
-    "noReclamations": "Aucune réclamation trouvée.",
-    "deleteConfirm": "Supprimer cette réclamation ?",
-    "table": {
-      "title": "Sujet",
-      "status": "Statut",
-      "priority": "Priorité",
-      "date": "Date"
-    },
-    "modal": {
-      "newTitle": "Soumettre une réclamation",
-      "editTitle": "Modifier la réclamation",
-      "viewTitle": "Détails de la réclamation",
-      "title": "Sujet *",
-      "description": "Description détaillée *",
-      "priority": "Priorité",
-      "status": "Statut",
-      "resolutionNotes": "Notes de résolution",
-      "cancel": "Annuler",
-      "save": "Soumettre",
-      "update": "Mettre à jour"
-    },
-    "status": {
-      "pending": "En attente",
-      "in_progress": "En cours",
-      "resolved": "Résolue",
-      "rejected": "Rejetée"
-    },
-    "priority": {
-      "low": "Basse",
-      "medium": "Moyenne",
-      "high": "Haute"
     }
   },
   "errorBoundary": {

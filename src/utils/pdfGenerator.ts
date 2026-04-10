@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, parseISO } from 'date-fns';
 import { fr, arDZ } from 'date-fns/locale';
-import { Product, Client, StockExit, Payment, Expense, ServiceRecord } from '../types';
+import { Product, Client, StockExit, Payment, Expense, ServiceRecord, CashSession } from '../types';
 
 // Helper to detect Arabic characters
 const hasArabic = (text: string) => /[\u0600-\u06FF]/.test(text);
@@ -89,6 +89,7 @@ interface ReportData {
   payments: Payment[];
   expenses: Expense[];
   services: ServiceRecord[];
+  cashSessions: CashSession[];
   products: Product[];
   language: string;
   isDaily?: boolean;
@@ -560,6 +561,62 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
         t('common.user', 'Magasinier')
       ].map(formatText)],
       body: paymentRows,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [243, 244, 246], 
+        textColor: [31, 41, 55], 
+        font: 'helvetica', 
+        fontStyle: 'bold',
+        halign: isArabicUI ? 'right' : 'left'
+      },
+      styles: { 
+        font: 'helvetica', 
+        fontSize: 9, 
+        halign: isArabicUI ? 'right' : 'left' 
+      },
+      didParseCell: (data) => {
+        if (fontLoaded) {
+          const cellText = data.cell.text.join(' ');
+          if (isArabicUI || hasArabic(cellText)) {
+            data.cell.styles.font = 'ArabicFont';
+          }
+        }
+      }
+    });
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // Cash Sessions Table
+  if (data.cashSessions.length > 0) {
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+    const cashTitle = formatText(t('dashboard.report.cashSessions', 'Sessions de Caisse'));
+    doc.setFont(getFont(cashTitle), getFont(cashTitle) === 'ArabicFont' ? 'normal' : 'bold');
+    doc.setFontSize(14);
+    if (isArabicUI) doc.text(cashTitle, 196, currentY, { align: 'right' });
+    else doc.text(cashTitle, 14, currentY);
+
+    const cashRows = data.cashSessions.map(session => {
+      return [
+        format(parseISO(session.openedAt), isFrench ? 'dd/MM HH:mm' : 'dd/MM HH:mm', { locale: dateLocale }),
+        session.userName,
+        `${formatCurrency(session.initialAmount)} DT`,
+        `${formatCurrency(session.totalAdded || 0)} DT`,
+        session.finalAmount !== undefined && session.finalAmount !== null ? `${formatCurrency(session.finalAmount)} DT` : '-',
+        t(`cashRegister.status.${session.status}`)
+      ].map(formatText);
+    });
+
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [[
+        t('common.date', 'Date'),
+        t('common.user', 'Magasinier'),
+        t('cashRegister.initialAmount', 'Initial'),
+        t('cashRegister.addedFunds', 'Ajouté'),
+        t('cashRegister.finalAmount', 'Final'),
+        t('common.status', 'Statut')
+      ].map(formatText)],
+      body: cashRows,
       theme: 'grid',
       headStyles: { 
         fillColor: [243, 244, 246], 

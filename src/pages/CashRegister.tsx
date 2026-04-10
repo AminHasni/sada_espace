@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../components/AuthProvider';
-import { CashSession } from '../types';
-import { Wallet, Plus, CheckCircle, XCircle, Clock, History, User } from 'lucide-react';
+import { CashSession, CashTransaction } from '../types';
+import { Wallet, Plus, CheckCircle, XCircle, Clock, History, User, ArrowUpCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { fr, arDZ } from 'date-fns/locale';
@@ -17,6 +17,10 @@ export default function CashRegister() {
   const [initialAmount, setInitialAmount] = useState<string>('');
   const [finalAmount, setFinalAmount] = useState<string>('');
   const [notes, setNotes] = useState('');
+  const [addAmount, setAddAmount] = useState<string>('');
+  const [addReason, setAddReason] = useState('');
+  const [sessionTransactions, setSessionTransactions] = useState<CashTransaction[]>([]);
+  const [isAddingFunds, setIsAddingFunds] = useState(false);
 
   const dateLocale = i18n.language === 'ar' ? arDZ : fr;
 
@@ -33,9 +37,24 @@ export default function CashRegister() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
-        setCurrentSession({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as CashSession);
+        const sessionData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as CashSession;
+        setCurrentSession(sessionData);
+        
+        // Fetch transactions for this session
+        const transQ = query(
+          collection(db, 'cash_transactions'),
+          where('sessionId', '==', sessionData.id),
+          orderBy('timestamp', 'desc')
+        );
+        
+        const unsubscribeTrans = onSnapshot(transQ, (transSnapshot) => {
+          setSessionTransactions(transSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CashTransaction)));
+        });
+        
+        return () => unsubscribeTrans();
       } else {
         setCurrentSession(null);
+        setSessionTransactions([]);
       }
       setLoading(false);
     }, (error) => {
@@ -97,6 +116,49 @@ export default function CashRegister() {
       console.error("Error closing cash session:", error);
     }
   };
+
+  const handleAddFunds = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentSession?.id || !profile || !addAmount) return;
+
+    setIsAddingFunds(true);
+    try {
+      const transactionRef = await addDoc(collection(db, 'cash_transactions'), {
+        sessionId: currentSession.id,
+        userId: profile.uid,
+        userName: profile.displayName,
+        amount: Number(addAmount),
+        type: 'add_funds',
+        reason: addReason,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Update session total
+      await updateDoc(doc(db, 'cash_sessions', currentSession.id), {
+        totalAdded: (currentSession.totalAdded || 0) + Number(addAmount)
+      });
+      
+      // Log activity
+      await addDoc(collection(db, 'logs'), {
+        userId: profile.uid,
+        userName: profile.displayName,
+        action: 'cash_add_funds',
+        details: `Ajout de ${addAmount} DT à la caisse. Raison: ${addReason || 'Non spécifiée'}`,
+        timestamp: new Date().toISOString()
+      });
+
+      setAddAmount('');
+      setAddReason('');
+    } catch (error) {
+      console.error("Error adding funds:", error);
+    } finally {
+      setIsAddingFunds(false);
+    }
+  };
+
+  const totalAdded = sessionTransactions
+    .filter(t => t.type === 'add_funds')
+    .reduce((sum, t) => sum + t.amount, 0);
 
   if (loading) {
     return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
@@ -189,6 +251,80 @@ export default function CashRegister() {
                     {currentSession.initialAmount.toLocaleString('fr-TN')} DT
                   </span>
                 </div>
+                {totalAdded > 0 && (
+                  <div className="flex justify-between items-center p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
+                    <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{t('cashRegister.addedFunds', 'Fonds ajoutés')}</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                      + {totalAdded.toLocaleString('fr-TN')} DT
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center p-3 bg-primary/5 rounded-xl border border-primary/10">
+                  <span className="text-sm text-primary font-bold">{t('cashRegister.currentTotal', 'Total actuel')}</span>
+                  <span className="font-black text-primary text-lg">
+                    {(currentSession.initialAmount + totalAdded).toLocaleString('fr-TN')} DT
+                  </span>
+                </div>
+              </div>
+
+              {/* Recent Transactions */}
+              {sessionTransactions.length > 0 && (
+                <div className="mb-6 space-y-2">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">{t('cashRegister.recentTransactions', 'Transactions récentes')}</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {sessionTransactions.map(transaction => (
+                      <div key={transaction.id} className="flex justify-between items-center p-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center">
+                            <Plus size={12} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-700 dark:text-slate-300">{transaction.amount.toLocaleString()} DT</p>
+                            <p className="text-[10px] text-slate-500">{transaction.reason || t('common.noReason', 'Sans raison')}</p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-slate-400">{new Date(transaction.timestamp).toLocaleTimeString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Add Funds Form */}
+              <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <h3 className="font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                  <ArrowUpCircle size={18} className="text-emerald-500" />
+                  {t('cashRegister.addFundsTitle', 'Ajouter des fonds')}
+                </h3>
+                <form onSubmit={handleAddFunds} className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      required
+                      min="0.01"
+                      step="0.01"
+                      value={addAmount}
+                      onChange={(e) => setAddAmount(e.target.value)}
+                      className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                      placeholder={t('cashRegister.amountToAdd', 'Montant à ajouter')}
+                    />
+                    <input
+                      type="text"
+                      value={addReason}
+                      onChange={(e) => setAddReason(e.target.value)}
+                      className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                      placeholder={t('cashRegister.addReason', 'Raison (ex: Fond de roulement)')}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isAddingFunds}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-emerald-600 transition-colors text-sm disabled:opacity-50"
+                  >
+                    <Plus size={16} />
+                    {isAddingFunds ? t('common.loading') : t('cashRegister.submitAddFunds', 'Confirmer l\'ajout')}
+                  </button>
+                </form>
               </div>
 
               <form onSubmit={handleCloseSession} className="space-y-4 border-t border-slate-100 dark:border-slate-800 pt-6">
@@ -253,10 +389,16 @@ export default function CashRegister() {
                     </span>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-50 dark:border-slate-800">
+                  <div className="grid grid-cols-3 gap-4 pt-3 border-t border-slate-50 dark:border-slate-800">
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('cashRegister.history.initial')}</p>
                       <p className="text-sm font-bold text-slate-900 dark:text-white">{session.initialAmount.toLocaleString()} DT</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('cashRegister.addedFunds', 'Ajouté')}</p>
+                      <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                        {session.totalAdded ? `+${session.totalAdded.toLocaleString()} DT` : '0 DT'}
+                      </p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('cashRegister.history.final')}</p>

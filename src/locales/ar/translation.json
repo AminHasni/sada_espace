@@ -10,7 +10,6 @@
     "expenses": "المصاريف",
     "services": "الخدمات",
     "users": "المستخدمون",
-    "reclamations": "الشكاوى",
     "creditReports": "تقارير الديون",
     "profile": "ملفي الشخصي",
     "logout": "تسجيل الخروج"
@@ -57,7 +56,8 @@
     "description": "الوصف",
     "details": "التفاصيل",
     "price": "السعر",
-    "user": "أمين المخزن"
+    "user": "أمين المخزن",
+    "noReason": "بدون سبب"
   },
   "cashRegister": {
     "openSession": "فتح الصندوق",
@@ -71,6 +71,13 @@
     "closeSession": "إغلاق الصندوق",
     "finalAmount": "المبلغ النهائي في الصندوق (د) *",
     "submitClose": "إغلاق الجلسة",
+    "addedFunds": "الأموال المضافة",
+    "currentTotal": "الإجمالي الحالي",
+    "addFundsTitle": "إضافة أموال",
+    "amountToAdd": "المبلغ المراد إضافته",
+    "addReason": "السبب (مثلاً: رأس مال عامل)",
+    "submitAddFunds": "تأكيد الإضافة",
+    "recentTransactions": "المعاملات الأخيرة",
     "history": {
       "title": "سجل جلسات الصندوق",
       "subtitle": "تتبع المبالغ الأولية والنهائية لكل أمين مخزن.",
@@ -131,6 +138,7 @@
       "title": "تقرير النشاط",
       "summary": "الملخص المالي",
       "trends": "اتجاهات النشاط",
+      "cashSessions": "جلسات الصندوق",
       "sales": "تفاصيل المبيعات",
       "expenses": "تفاصيل المصاريف",
       "payments": "تفاصيل المدفوعات",
@@ -657,45 +665,6 @@
       "serviceCreated": "تم إنشاء خدمة: {{name}} للزبون {{client}}",
       "serviceUpdated": "تم تحديث خدمة: {{name}} للزبون {{client}}",
       "serviceDeleted": "تم حذف خدمة: {{name}}"
-    }
-  },
-  "reclamations": {
-    "title": "الشكاوى",
-    "subtitle": "إدارة ومتابعة الشكاوى والطلبات",
-    "newReclamation": "شكوى جديدة",
-    "searchPlaceholder": "البحث في الشكاوى...",
-    "noReclamations": "لا توجد شكاوى حالياً",
-    "deleteConfirm": "هل أنت متأكد من حذف هذه الشكوى؟",
-    "submittedBy": "بواسطة: {{name}}",
-    "table": {
-      "date": "التاريخ",
-      "title": "العنوان",
-      "priority": "الأولوية",
-      "status": "الحالة"
-    },
-    "priority": {
-      "low": "منخفضة",
-      "medium": "متوسطة",
-      "high": "عالية"
-    },
-    "status": {
-      "pending": "قيد الانتظار",
-      "in_progress": "قيد المعالجة",
-      "resolved": "تم الحل",
-      "rejected": "مرفوضة"
-    },
-    "modal": {
-      "newTitle": "تقديم شكوى جديدة",
-      "editTitle": "تعديل الشكوى",
-      "viewTitle": "تفاصيل الشكوى",
-      "title": "العنوان",
-      "description": "الوصف",
-      "priority": "الأولوية",
-      "status": "الحالة",
-      "resolutionNotes": "ملاحظات الحل",
-      "cancel": "إلغاء",
-      "save": "حفظ",
-      "update": "تحديث"
     }
   },
   "purchaseOrders": {

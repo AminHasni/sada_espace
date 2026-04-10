@@ -21,8 +21,7 @@ import {
   Building2,
   ShoppingCart,
   Wallet,
-  Briefcase,
-  MessageSquareWarning
+  Briefcase
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { cn } from '../lib/utils';
@@ -52,7 +51,6 @@ const Layout: React.FC = () => {
     { to: '/clients', icon: Users, labelKey: 'nav.clients', roles: ['admin', 'warehouseman'] },
     { to: '/expenses', icon: Wallet, labelKey: 'nav.expenses', roles: ['admin', 'warehouseman'] },
     { to: '/services', icon: Briefcase, labelKey: 'nav.services', roles: ['admin', 'warehouseman'] },
-    { to: '/reclamations', icon: MessageSquareWarning, labelKey: 'nav.reclamations', roles: ['admin', 'warehouseman'] },
     { to: '/users', icon: Shield, labelKey: 'nav.users', roles: ['admin'] },
   ];
 

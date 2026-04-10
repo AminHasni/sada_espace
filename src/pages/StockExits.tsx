@@ -453,22 +453,22 @@ const StockExits: React.FC = () => {
               transaction.update(clientRef, { totalCredit: currentCredit + creditToAdd });
             }
           }
+        }
 
-          // Also record a payment if there was an upfront payment
-          if (Number(formData.amountPaid) > 0) {
-            const paymentRef = doc(collection(db, 'payments'));
-            transaction.set(paymentRef, {
-              clientId: formData.clientId,
-              clientName: client?.name || '',
-              amount: Number(formData.amountPaid),
-              date: formData.exitDate,
-              method: 'cash',
-              notes: `Paiement initial pour la vente ${formData.exitNumber}`,
-              performedBy: profile.uid,
-              performedByName: profile.displayName,
-              createdAt: new Date().toISOString()
-            });
-          }
+        // 4. Record a payment if there was an upfront payment (Always, even without a client)
+        if (Number(formData.amountPaid) > 0) {
+          const paymentRef = doc(collection(db, 'payments'));
+          transaction.set(paymentRef, {
+            clientId: formData.clientId || null,
+            clientName: client?.name || 'Client Passager',
+            amount: Number(formData.amountPaid),
+            date: formData.exitDate,
+            method: 'cash',
+            notes: `Paiement initial pour la vente ${formData.exitNumber}`,
+            performedBy: profile.uid,
+            performedByName: profile.displayName,
+            createdAt: new Date().toISOString()
+          });
         }
 
         // 5. Log Activity

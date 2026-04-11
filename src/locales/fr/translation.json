@@ -48,6 +48,8 @@
     "generatedAt": "Généré le",
     "na": "N/A",
     "credit": "Crédit",
+    "paid": "Payé",
+    "partial": "Partiel",
     "allCategories": "Toutes les catégories",
     "exportCSV": "Exporter CSV",
     "description": "Description",

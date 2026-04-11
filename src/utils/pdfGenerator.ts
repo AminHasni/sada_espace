@@ -294,46 +294,76 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
 
   currentY = startY + chartHeight + 20;
 
-  // Sales Table (Detailed)
-  const salesExits = data.stockExits.filter(e => e.type === 'sale');
-  if (salesExits.length > 0) {
-    const salesTitle = formatText(t('dashboard.report.sales', 'Détails des Ventes'));
-    const salesTitleFont = getFont(salesTitle);
-    doc.setFont(salesTitleFont, salesTitleFont === 'ArabicFont' ? 'normal' : 'bold');
+  // Sales Tables (Detailed)
+  const normalSales = data.stockExits.filter(e => e.type === 'sale' && e.paymentStatus === 'paid');
+  const creditSales = data.stockExits.filter(e => e.type === 'sale' && e.paymentStatus === 'credit');
+
+  const drawSalesTable = (exits: StockExit[], tableTitle: string) => {
+    if (exits.length === 0) return;
+    
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+    const formattedTitle = formatText(tableTitle);
+    const titleFont = getFont(formattedTitle);
+    doc.setFont(titleFont, titleFont === 'ArabicFont' ? 'normal' : 'bold');
     doc.setFontSize(14);
     if (isArabicUI) {
-      doc.text(salesTitle, 196, currentY, { align: 'right' });
+      doc.text(formattedTitle, 196, currentY, { align: 'right' });
     } else {
-      doc.text(salesTitle, 14, currentY);
+      doc.text(formattedTitle, 14, currentY);
     }
 
     const salesRows: string[][] = [];
-    salesExits.forEach(sale => {
-      sale.items.forEach(item => {
-        const product = data.products.find(p => p.id === item.productId);
-        const category = item.category || product?.category || '-';
-        const totalCost = item.quantity * (item.unitPrice || 0);
-        const rawDate = sale.createdAt || sale.exitDate;
-        const saleDateFormatted = rawDate ? format(parseISO(rawDate), isFrench ? 'EEEE dd MMMM yyyy HH:mm' : 'dd MMMM yyyy HH:mm', { locale: dateLocale }) : '-';
+    exits.forEach(sale => {
+      const rawDate = sale.createdAt || sale.exitDate;
+      const saleDateFormatted = rawDate ? format(parseISO(rawDate), isFrench ? 'dd/MM HH:mm' : 'dd/MM HH:mm', { locale: dateLocale }) : '-';
+      
+      sale.items.forEach((item, index) => {
+        const itemTotal = item.quantity * (item.unitPrice || 0);
+        
+        const status = index === 0 ? (
+          sale.paymentStatus === 'credit' 
+            ? t('common.credit', 'Crédit') 
+            : (sale.amountPaid || 0) < (sale.totalAmount || 0) 
+              ? t('common.partial', 'Partiel') 
+              : t('common.paid', 'Payé')
+        ) : '';
+
         salesRows.push([
           saleDateFormatted,
-          category,
+          index === 0 ? (sale.clientName || '-') : '',
           item.productName,
           item.quantity.toString(),
-          `${formatCurrency(totalCost)} DT`,
-          sale.performedByName || '-'
+          `${formatCurrency(item.unitPrice)} DT`,
+          `${formatCurrency(itemTotal)} DT`,
+          status,
+          index === 0 ? (sale.performedByName || '-') : ''
         ].map(formatText));
       });
+
+      if ((sale.discount || 0) > 0) {
+        salesRows.push([
+          '',
+          '',
+          formatText(`[${t('dashboard.financials.totalDiscounts', 'Remise')}]`),
+          '',
+          '',
+          `-${formatCurrency(sale.discount || 0)} DT`,
+          '',
+          ''
+        ]);
+      }
     });
 
     autoTable(doc, {
       startY: currentY + 5,
       head: [[
         t('common.dateHeure', 'Date & Heure'),
-        t('common.category', 'Catégorie'),
+        t('clients.form.name', 'Client'),
         t('common.product', 'Produit'),
-        t('common.quantity', 'Quantité'),
-        t('common.totalCost', 'Coût Total'),
+        t('common.quantity', 'Qté'),
+        t('common.unitPrice', 'P.U'),
+        t('common.total', 'Total'),
+        t('common.status', 'Statut'),
         t('common.user', 'Magasinier')
       ].map(formatText)],
       body: salesRows,
@@ -349,8 +379,8 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
         font: 'helvetica',
         fontStyle: 'normal',
         halign: isArabicUI ? 'right' : 'left',
-        fontSize: 9,
-        cellPadding: 4
+        fontSize: 8,
+        cellPadding: 3
       },
       didParseCell: (data) => {
         if (fontLoaded) {
@@ -358,7 +388,7 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
           if (isArabicUI || hasArabic(cellText)) {
             data.cell.styles.font = 'ArabicFont';
             if (data.section === 'head' && !isArabicUI) {
-              data.cell.styles.fontStyle = 'normal'; // ArabicFont might not support bold
+              data.cell.styles.fontStyle = 'normal';
             }
           }
         }
@@ -368,7 +398,10 @@ export const generatePDFReport = async (data: ReportData, t: any) => {
       }
     });
     currentY = (doc as any).lastAutoTable.finalY + 15;
-  }
+  };
+
+  drawSalesTable(normalSales, t('dashboard.financials.totalSales', 'Ventes Normales'));
+  drawSalesTable(creditSales, t('dashboard.financials.totalCreditSales', 'Ventes par Crédit'));
 
   // Expenses Table
   if (data.expenses.length > 0) {

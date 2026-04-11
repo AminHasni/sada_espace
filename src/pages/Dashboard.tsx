@@ -187,7 +187,7 @@ const Dashboard: React.FC = () => {
       return isWithinInterval(date, { start, end });
     });
 
-    const totalSales = periodSales.filter(s => s.paymentStatus !== 'credit').reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
+    const totalSales = periodSales.filter(s => s.paymentStatus === 'paid').reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
     const totalCreditSales = periodSales.filter(s => s.paymentStatus === 'credit').reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
     const totalDiscounts = periodSales.reduce((sum, s) => sum + (Number(s.discount) || 0), 0);
     const totalPayments = periodPayments.reduce((sum, p) => sum + Number(p.amount), 0);
@@ -199,10 +199,10 @@ const Dashboard: React.FC = () => {
     // Chart data
     const days = eachDayOfInterval({ start, end });
     const chartData = days.map(day => {
-      const daySales = periodSales.filter(s => isSameDay(parseISO(s.exitDate), day) && s.paymentStatus !== 'credit')
-        .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+      const daySales = periodSales.filter(s => isSameDay(parseISO(s.exitDate), day) && s.paymentStatus === 'paid')
+        .reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
       const dayCreditSales = periodSales.filter(s => isSameDay(parseISO(s.exitDate), day) && s.paymentStatus === 'credit')
-        .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+        .reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
       const dayPayments = periodPayments.filter(p => isSameDay(parseISO(p.date), day))
         .reduce((sum, p) => sum + p.amount, 0);
       const dayExpenses = periodExpenses.filter(e => isSameDay(parseISO(e.date), day))
